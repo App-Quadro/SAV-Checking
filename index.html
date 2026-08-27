@@ -182,6 +182,16 @@
   .mic-btn{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:12px;display:inline-flex;align-items:center;gap:6px;font-size:.85rem;}
   .mic-btn.rec{background:var(--danger);color:#fff;border-color:var(--danger);}
 
+  .photo-add-btn{
+    width:56px;height:56px;border-radius:50%;
+    background:#22a06b;color:#fff;font-size:1.8rem;font-weight:400;
+    line-height:1;display:flex;align-items:center;justify-content:center;
+    padding:0;margin-bottom:12px;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+  }
+  .photo-add-btn:hover{background:#1c8a5b;}
+  .photo-add-btn:active{transform:scale(.96);}
+
   #fileImport{display:none;}
   .hint{font-size:.78rem;color:var(--muted);margin-top:-6px;margin-bottom:12px;}
 
@@ -197,9 +207,46 @@
     background:#fff;color:var(--accent-dark);
     padding:6px 12px;font-size:.85rem;flex:none;
   }
+
+  .version-tag{font-size:.68rem;opacity:.7;margin-left:8px;}
+  .user-tag{display:flex;align-items:center;gap:8px;font-size:.78rem;opacity:.9;margin-top:4px;}
+  .user-tag a{color:#fff;text-decoration:underline;cursor:pointer;}
+
+  .login-overlay{
+    position:fixed;inset:0;background:var(--accent-dark);
+    display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;
+  }
+  .login-box{background:#fff;border-radius:12px;padding:26px;max-width:340px;width:100%;}
+  .login-box h2{margin-top:0;font-size:1.1rem;}
+  .login-error{color:var(--danger);font-size:.85rem;margin:-6px 0 12px;display:none;}
+  .login-error.show{display:block;}
+
+  .resolved-badge{background:#1c8a5b;color:#fff;}
+  .sav-item.is-resolu{opacity:.85;}
+  .sav-item.is-resolu .sav-comment{color:var(--muted);}
+
+  .thread{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;}
+  .thread-entry{font-size:.85rem;padding:6px 0;border-bottom:1px solid #eee;}
+  .thread-entry:last-child{border-bottom:none;}
+  .thread-meta{font-weight:700;font-size:.75rem;color:var(--muted);text-transform:uppercase;}
+  .thread-entry.type-resolution .thread-meta{color:#1c8a5b;}
+  .thread-entry.type-reouverture .thread-meta{color:var(--danger);}
+  .thread-text{margin-top:2px;white-space:pre-wrap;}
 </style>
 </head>
 <body>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>Connexion</h2>
+    <label>Nom d'utilisateur</label>
+    <input type="text" id="loginNom" placeholder="Ex : Antoine" autocomplete="username">
+    <label>Mot de passe</label>
+    <input type="text" id="loginMdp" placeholder="Mot de passe" autocomplete="current-password">
+    <div class="login-error" id="loginError">Identifiants incorrects.</div>
+    <button class="btn-primary btn-block" id="loginBtn">Se connecter</button>
+  </div>
+</div>
 
 <div class="update-banner" id="updateBanner">
   <span>Une nouvelle version de l'application est disponible.</span>
@@ -207,19 +254,20 @@
 </div>
 
 <header>
-  <h1>Suivi SAV — Aménagement magasin</h1>
+  <h1>Suivi SAV — Aménagement magasin <span class="version-tag" id="versionTag"></span></h1>
   <div class="sub" id="headerSub">Nouveau rapport</div>
+  <div class="user-tag" id="userTag"></div>
 </header>
 
 <div class="container">
 
   <div class="card">
-    <label>Rédacteur</label>
-    <input type="text" id="fRedacteur" placeholder="Nom de l'animateur">
+    <label>Auteur</label>
+    <input type="text" id="fAuteur" placeholder="Nom de l'auteur du rapport">
     <div class="row">
       <div>
         <label>Magasin</label>
-        <input type="text" id="fMagasin" placeholder="Ex : Caen">
+        <input type="text" id="fMagasin" placeholder="Ex : ville">
       </div>
       <div>
         <label>Date</label>
@@ -236,10 +284,27 @@
 
 <div class="footer-actions">
   <button class="btn-secondary" id="btnImport">Importer</button>
-  <button class="btn-secondary" id="btnExportJson">Exporter fichier</button>
-  <button class="btn-primary" id="btnExportPdf">Générer PDF</button>
+  <button class="btn-primary" id="btnExport" style="flex:2">Exporter le rapport</button>
 </div>
 <input type="file" id="fileImport" accept="application/json">
+
+<!-- Modal export -->
+<div class="modal-overlay" id="exportModalOverlay">
+  <div class="modal">
+    <h2>Exporter le rapport</h2>
+    <label style="display:flex;align-items:center;gap:10px;font-size:1rem;text-transform:none;font-weight:400;margin-bottom:12px;">
+      <input type="checkbox" id="cbExportPdf" checked style="width:auto;margin:0;"> Rapport PDF
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:1rem;text-transform:none;font-weight:400;margin-bottom:12px;">
+      <input type="checkbox" id="cbExportJson" checked style="width:auto;margin:0;"> Fichier exploitable (.json, pour réimport)
+    </label>
+    <div class="hint" id="exportHint">Les fichiers seront proposés directement au partage, ou téléchargés si le partage n'est pas disponible sur cet appareil.</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="exCancel" style="flex:1">Annuler</button>
+      <button class="btn-primary" id="exConfirm" style="flex:1">Exporter</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal ajout/édition SAV -->
 <div class="modal-overlay" id="savModalOverlay">
@@ -259,8 +324,10 @@
     <button type="button" class="mic-btn" id="mMicBtn">🎙️ Dictée vocale</button>
     <textarea id="mCommentaire" placeholder="Décrivez le défaut constaté"></textarea>
     <label>Photos du défaut</label>
-    <input type="file" id="mPhotoInput" accept="image/*" capture="environment" multiple>
     <div class="photo-input-row" id="mPhotoPreview"></div>
+    <button type="button" class="photo-add-btn" id="mPhotoAddBtn" aria-label="Ajouter des photos">+</button>
+    <input type="file" id="mPhotoInput" accept="image/*" multiple style="display:none">
+    <div class="hint">Sélectionnez plusieurs photos d'un coup depuis la galerie, ou prenez-les avec l'appareil photo.</div>
     <div class="modal-actions">
       <button class="btn-secondary" id="mCancel" style="flex:1">Annuler</button>
       <button class="btn-primary" id="mSave" style="flex:1">Enregistrer</button>
@@ -272,8 +339,16 @@
 <div class="modal-overlay" id="meubleModalOverlay">
   <div class="modal">
     <h2>Nouveau meuble</h2>
-    <label>Référence du meuble</label>
-    <input type="text" id="nmRef" placeholder="Référence selon plan">
+    <div class="row">
+      <div>
+        <label>Référence</label>
+        <input type="text" id="nmRef" placeholder="Ex : E-01">
+      </div>
+      <div>
+        <label>Désignation</label>
+        <input type="text" id="nmDesignation" placeholder="Ex : bibliothèque, cuisine...">
+      </div>
+    </div>
     <label>Photo de la vue d'ensemble</label>
     <input type="file" id="nmPhotoInput" accept="image/*" capture="environment">
     <div class="photo-input-row" id="nmPhotoPreview"></div>
@@ -284,25 +359,78 @@
   </div>
 </div>
 
+<!-- Modal réponse SAV (fil de discussion) -->
+<div class="modal-overlay" id="replyModalOverlay">
+  <div class="modal">
+    <h2>Ajouter une réponse</h2>
+    <label>Auteur</label>
+    <input type="text" id="rAuteur" readonly style="background:#f0f0f0;">
+    <label>Message</label>
+    <textarea id="rTexte" placeholder="Votre commentaire, réponse ou action réalisée"></textarea>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="rCancel" style="flex:1">Annuler</button>
+      <button class="btn-primary" id="rSave" style="flex:1">Envoyer</button>
+    </div>
+  </div>
+</div>
+
 <script>
+/* ---------- VERSION ---------- */
+const APP_VERSION = "2.00.00"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
+const SCHEMA_VERSION = 2; // version de structure du fichier .json échangé entre utilisateurs
+
 /* ---------- ETAT ---------- */
 const TYPE_LABELS = {
   pose:"Pose", reglage:"Réglage", conception:"Conception",
   fabrication:"Fabrication", defaut:"Défaut matériel"
 };
 
-let state = {
-  redacteur:"", magasin:"", date:"",
-  meubles: [] // {id, reference, photoEnsemble, open, savs:[{id, piece, type, commentaire, photos:[]}]}
-};
+function emptyState(){
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    auteur:"", magasin:"", date:"",
+    meubles: []
+    // meuble: {id, reference, designation, photoEnsemble, open,
+    //          savs:[{id, piece, type, commentaire, photos:[], statut:'ouvert'|'resolu', fil:[{id,auteur,type,texte,date}]}]}
+  };
+}
+let state = emptyState();
 
 let editing = { meubleId:null, savId:null }; // contexte pour la modale SAV
+let replyContext = { meubleId:null, savId:null }; // contexte pour la modale réponse
 let pendingPhotos = []; // photos en cours de saisie dans la modale SAV
 let pendingMeublePhoto = null;
 
-const LS_KEY = "sav_app_draft_v1";
+const LS_KEY = "sav_app_draft_v2";
+const SESSION_KEY = "sav_app_session";
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ---------- MIGRATION (compatibilité fichiers anciens / autres versions) ---------- */
+function migrateState(data){
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    auteur: data.auteur || data.redacteur || "",
+    magasin: data.magasin || "",
+    date: data.date || "",
+    meubles: (data.meubles||[]).map(m=>({
+      id: m.id || uid(),
+      reference: m.reference || "",
+      designation: m.designation || "",
+      photoEnsemble: m.photoEnsemble || null,
+      open: !!m.open,
+      savs: (m.savs||[]).map(s=>({
+        id: s.id || uid(),
+        piece: s.piece || "",
+        type: s.type || "pose",
+        commentaire: s.commentaire || "",
+        photos: s.photos || [],
+        statut: s.statut || "ouvert",
+        fil: s.fil || []
+      }))
+    }))
+  };
+}
 
 function saveDraft(){
   try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){ /* stockage plein, on ignore */ }
@@ -310,9 +438,73 @@ function saveDraft(){
 function loadDraft(){
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if(raw){ state = JSON.parse(raw); }
+    if(raw){ state = migrateState(JSON.parse(raw)); }
   }catch(e){}
 }
+
+/* ---------- SESSION UTILISATEUR ---------- */
+function getSession(){
+  try{ return JSON.parse(sessionStorage.getItem(SESSION_KEY)); }catch(e){ return null; }
+}
+function setSession(user){
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+}
+function clearSession(){
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+async function loadUsers(){
+  const res = await fetch('./users.csv', {cache:"no-store"});
+  if(!res.ok) throw new Error("users.csv introuvable");
+  const text = await res.text();
+  const lines = text.trim().split(/\r?\n/);
+  lines.shift(); // en-tête nom,motdepasse,role
+  return lines.filter(l=>l.trim()).map(l=>{
+    const [nom, motdepasse, role] = l.split(',').map(x=>(x||"").trim());
+    return {nom, motdepasse, role};
+  });
+}
+
+function renderUserTag(){
+  const session = getSession();
+  const tag = document.getElementById("userTag");
+  if(session){
+    tag.innerHTML = `Connecté : ${escapeHtml(session.nom)} <a id="logoutLink">Changer d'utilisateur</a>`;
+    document.getElementById("logoutLink").addEventListener("click", ()=>{
+      clearSession();
+      window.location.reload();
+    });
+  } else {
+    tag.innerHTML = "";
+  }
+}
+
+function showLogin(){
+  document.getElementById("loginOverlay").style.display = "flex";
+}
+function hideLogin(){
+  document.getElementById("loginOverlay").style.display = "none";
+}
+
+document.getElementById("loginBtn").addEventListener("click", async ()=>{
+  const nom = document.getElementById("loginNom").value.trim();
+  const mdp = document.getElementById("loginMdp").value;
+  const errBox = document.getElementById("loginError");
+  errBox.classList.remove("show");
+  if(!nom || !mdp){ errBox.textContent="Merci de renseigner nom et mot de passe."; errBox.classList.add("show"); return; }
+  try{
+    const users = await loadUsers();
+    const match = users.find(u=>u.nom.toLowerCase()===nom.toLowerCase() && u.motdepasse===mdp);
+    if(!match){ errBox.textContent="Identifiants incorrects."; errBox.classList.add("show"); return; }
+    setSession({ nom: match.nom, role: match.role||"utilisateur" });
+    hideLogin();
+    renderUserTag();
+    startApp();
+  }catch(e){
+    errBox.textContent = "Impossible de vérifier les identifiants (fichier users.csv introuvable). Vérifiez la connexion ou l'installation.";
+    errBox.classList.add("show");
+  }
+});
 
 /* ---------- COMPRESSION IMAGE ---------- */
 function readAndCompressImage(file, maxDim=1400, quality=0.75){
@@ -341,7 +533,7 @@ function readAndCompressImage(file, maxDim=1400, quality=0.75){
 
 /* ---------- RENDU ---------- */
 function render(){
-  document.getElementById("fRedacteur").value = state.redacteur || "";
+  document.getElementById("fAuteur").value = state.auteur || "";
   document.getElementById("fMagasin").value = state.magasin || "";
   document.getElementById("fDate").value = state.date || "";
   document.getElementById("headerSub").textContent =
@@ -357,14 +549,13 @@ function render(){
   state.meubles.forEach(m=>{
     const div = document.createElement("div");
     div.className = "meuble"+(m.open?" open":"");
-    const counts = {};
-    m.savs.forEach(s=>{ counts[s.type]=(counts[s.type]||0)+1; });
-    const countText = m.savs.length ? m.savs.length+" SAV" : "Aucun SAV";
+    const resolus = m.savs.filter(s=>s.statut==="resolu").length;
+    const countText = m.savs.length ? `${m.savs.length} SAV — ${resolus} résolu(s)` : "Aucun SAV";
 
     div.innerHTML = `
       <div class="meuble-head" data-toggle="${m.id}">
         <div>
-          <div class="meuble-title">${escapeHtml(m.reference)}</div>
+          <div class="meuble-title">${escapeHtml(m.reference)}${m.designation ? ' <span style="font-weight:400;color:var(--muted);">· '+escapeHtml(m.designation)+'</span>' : ''}</div>
           <div class="meuble-count">${countText}</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
@@ -386,16 +577,21 @@ function render(){
     }
     m.savs.forEach(s=>{
       const el = document.createElement("div");
-      el.className = "sav-item";
+      el.className = "sav-item"+(s.statut==="resolu" ? " is-resolu" : "");
       el.dataset.type = s.type;
+      const fil = s.fil || [];
       el.innerHTML = `
         <div class="sav-head">
           <div><span class="sav-ref">${escapeHtml(s.piece||"(pièce non renseignée)")}</span>
-          <span class="badge ${s.type}">${TYPE_LABELS[s.type]}</span></div>
+          <span class="badge ${s.type}">${TYPE_LABELS[s.type]}</span>
+          ${s.statut==="resolu" ? '<span class="badge resolved-badge">Résolu</span>' : ''}</div>
         </div>
         <div class="sav-comment">${escapeHtml(s.commentaire||"")}</div>
         <div class="sav-photos">${(s.photos||[]).map(p=>`<img src="${p}">`).join("")}</div>
+        ${fil.length ? `<div class="thread">${fil.map(renderThreadEntry).join("")}</div>` : ""}
         <div class="sav-actions">
+          <button class="btn-secondary btn-icon" data-reply-sav="${m.id}|${s.id}">Répondre</button>
+          <button class="btn-secondary btn-icon" data-toggle-resolu="${m.id}|${s.id}">${s.statut==="resolu" ? "Rouvrir" : "Marquer résolu"}</button>
           <button class="btn-secondary btn-icon" data-edit-sav="${m.id}|${s.id}">Modifier</button>
           <button class="btn-danger btn-icon" data-del-sav="${m.id}|${s.id}">Supprimer</button>
         </div>
@@ -405,12 +601,22 @@ function render(){
   });
 }
 
+function renderThreadEntry(e){
+  const label = e.type==="resolution" ? "Résolution" : e.type==="reouverture" ? "Réouverture" : "Réponse";
+  return `
+    <div class="thread-entry type-${e.type}">
+      <div class="thread-meta">${escapeHtml(label)} · ${escapeHtml(e.auteur||"")} · ${escapeHtml(e.date||"")}</div>
+      <div class="thread-text">${escapeHtml(e.texte||"")}</div>
+    </div>
+  `;
+}
+
 function escapeHtml(str){
   return (str||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
 /* ---------- EVENEMENTS FORM PRINCIPAL ---------- */
-document.getElementById("fRedacteur").addEventListener("input", e=>{ state.redacteur=e.target.value; saveDraft(); });
+document.getElementById("fAuteur").addEventListener("input", e=>{ state.auteur=e.target.value; saveDraft(); });
 document.getElementById("fMagasin").addEventListener("input", e=>{ state.magasin=e.target.value; saveDraft(); render(); });
 document.getElementById("fDate").addEventListener("input", e=>{ state.date=e.target.value; saveDraft(); });
 
@@ -420,6 +626,8 @@ document.getElementById("meublesList").addEventListener("click", e=>{
   const addSav = e.target.closest("[data-add-sav]");
   const editSav = e.target.closest("[data-edit-sav]");
   const delSav = e.target.closest("[data-del-sav]");
+  const replySav = e.target.closest("[data-reply-sav]");
+  const toggleResolu = e.target.closest("[data-toggle-resolu]");
 
   if(toggle){
     const m = state.meubles.find(x=>x.id===toggle.dataset.toggle);
@@ -447,12 +655,35 @@ document.getElementById("meublesList").addEventListener("click", e=>{
       saveDraft(); render();
     }
   }
+  if(replySav){
+    const [mid,sid] = replySav.dataset.replySav.split("|");
+    openReplyModal(mid, sid);
+  }
+  if(toggleResolu){
+    const [mid,sid] = toggleResolu.dataset.toggleResolu.split("|");
+    const m = state.meubles.find(x=>x.id===mid);
+    const s = m.savs.find(x=>x.id===sid);
+    const session = getSession();
+    const auteur = session ? session.nom : "";
+    const now = new Date().toLocaleDateString("fr-FR");
+    if(s.statut === "resolu"){
+      s.statut = "ouvert";
+      s.fil = s.fil||[];
+      s.fil.push({ id:uid(), auteur, type:"reouverture", texte:"SAV rouvert.", date: now });
+    } else {
+      s.statut = "resolu";
+      s.fil = s.fil||[];
+      s.fil.push({ id:uid(), auteur, type:"resolution", texte:"SAV marqué comme résolu.", date: now });
+    }
+    saveDraft(); render();
+  }
 });
 
 /* ---------- MODALE NOUVEAU MEUBLE ---------- */
 const meubleOverlay = document.getElementById("meubleModalOverlay");
 document.getElementById("btnAddMeuble").addEventListener("click", ()=>{
   document.getElementById("nmRef").value="";
+  document.getElementById("nmDesignation").value="";
   document.getElementById("nmPhotoPreview").innerHTML="";
   pendingMeublePhoto = null;
   meubleOverlay.classList.add("show");
@@ -466,9 +697,10 @@ document.getElementById("nmPhotoInput").addEventListener("change", async e=>{
 });
 document.getElementById("nmSave").addEventListener("click", ()=>{
   const ref = document.getElementById("nmRef").value.trim();
+  const designation = document.getElementById("nmDesignation").value.trim();
   if(!ref){ alert("Merci de renseigner la référence du meuble."); return; }
   state.meubles.push({
-    id: uid(), reference: ref, photoEnsemble: pendingMeublePhoto,
+    id: uid(), reference: ref, designation: designation, photoEnsemble: pendingMeublePhoto,
     open:true, savs:[]
   });
   saveDraft(); render();
@@ -503,6 +735,7 @@ document.getElementById("mPhotoPreview").addEventListener("click", e=>{
   const rm = e.target.closest("[data-rm-photo]");
   if(rm){ pendingPhotos.splice(parseInt(rm.dataset.rmPhoto),1); renderPendingPhotos(); }
 });
+document.getElementById("mPhotoAddBtn").addEventListener("click", ()=> document.getElementById("mPhotoInput").click());
 document.getElementById("mPhotoInput").addEventListener("change", async e=>{
   for(const f of e.target.files){
     pendingPhotos.push(await readAndCompressImage(f, 1400, 0.75));
@@ -524,10 +757,38 @@ document.getElementById("mSave").addEventListener("click", ()=>{
     const s = m.savs.find(x=>x.id===editing.savId);
     s.piece=piece; s.type=type; s.commentaire=commentaire; s.photos=[...pendingPhotos];
   } else {
-    m.savs.push({ id:uid(), piece, type, commentaire, photos:[...pendingPhotos] });
+    m.savs.push({ id:uid(), piece, type, commentaire, photos:[...pendingPhotos], statut:"ouvert", fil:[] });
   }
   saveDraft(); render();
   savOverlay.classList.remove("show");
+});
+
+/* ---------- MODALE REPONSE (fil de discussion) ---------- */
+const replyOverlay = document.getElementById("replyModalOverlay");
+
+function openReplyModal(meubleId, savId){
+  replyContext = { meubleId, savId };
+  const session = getSession();
+  document.getElementById("rAuteur").value = session ? session.nom : "";
+  document.getElementById("rTexte").value = "";
+  replyOverlay.classList.add("show");
+}
+document.getElementById("rCancel").addEventListener("click", ()=> replyOverlay.classList.remove("show"));
+document.getElementById("rSave").addEventListener("click", ()=>{
+  const texte = document.getElementById("rTexte").value.trim();
+  if(!texte){ alert("Merci de saisir un message."); return; }
+  const m = state.meubles.find(x=>x.id===replyContext.meubleId);
+  const s = m.savs.find(x=>x.id===replyContext.savId);
+  s.fil = s.fil || [];
+  s.fil.push({
+    id: uid(),
+    auteur: document.getElementById("rAuteur").value.trim(),
+    type: "commentaire",
+    texte,
+    date: new Date().toLocaleDateString("fr-FR")
+  });
+  saveDraft(); render();
+  replyOverlay.classList.remove("show");
 });
 
 /* ---------- DICTEE VOCALE ---------- */
@@ -568,12 +829,64 @@ function fileNameBase(){
   return `SAV_${mag}_${d}`;
 }
 
-document.getElementById("btnExportJson").addEventListener("click", ()=>{
-  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
-  downloadBlob(blob, fileNameBase()+".json");
+document.getElementById("btnExport").addEventListener("click", ()=>{
+  if(state.meubles.length===0){ alert("Ajoutez au moins un meuble avant d'exporter."); return; }
+  document.getElementById("exportModalOverlay").classList.add("show");
+});
+document.getElementById("exCancel").addEventListener("click", ()=>{
+  document.getElementById("exportModalOverlay").classList.remove("show");
 });
 
-document.getElementById("btnImport").addEventListener("click", ()=> document.getElementById("fileImport").click());
+document.getElementById("exConfirm").addEventListener("click", async ()=>{
+  const wantPdf = document.getElementById("cbExportPdf").checked;
+  const wantJson = document.getElementById("cbExportJson").checked;
+  if(!wantPdf && !wantJson){ alert("Sélectionnez au moins un format."); return; }
+
+  const btn = document.getElementById("exConfirm");
+  btn.disabled = true; btn.textContent = "Génération...";
+  try{
+    const filesToShare = [];
+    let downloadedAny = false;
+
+    let pdfResult = null;
+    if(wantPdf){
+      pdfResult = await generatePdf();
+      filesToShare.push(new File([pdfResult.blob], pdfResult.name, {type:"application/pdf"}));
+    }
+
+    let jsonBlob = null, jsonName = null;
+    if(wantJson){
+      jsonBlob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+      jsonName = fileNameBase()+".json";
+      filesToShare.push(new File([jsonBlob], jsonName, {type:"application/json"}));
+    }
+
+    const shareData = {
+      files: filesToShare,
+      title: "Rapport SAV "+(state.magasin||""),
+      text: "Rapport SAV "+(state.magasin||"")+" du "+(state.date||"")
+    };
+
+    if(navigator.canShare && navigator.canShare(shareData)){
+      await navigator.share(shareData);
+    } else {
+      if(pdfResult) downloadBlob(pdfResult.blob, pdfResult.name);
+      if(jsonBlob) downloadBlob(jsonBlob, jsonName);
+      downloadedAny = true;
+    }
+
+    document.getElementById("exportModalOverlay").classList.remove("show");
+    if(downloadedAny){
+      alert("Fichier(s) téléchargé(s). Retrouvez-les dans le dossier de téléchargements de votre appareil pour les partager.");
+    }
+  } catch(e){
+    if(e.name !== "AbortError"){
+      alert("Erreur lors de l'export : "+e.message);
+    }
+  } finally {
+    btn.disabled = false; btn.textContent = "Exporter";
+  }
+});
 document.getElementById("fileImport").addEventListener("change", e=>{
   const f = e.target.files[0];
   if(!f) return;
@@ -582,7 +895,10 @@ document.getElementById("fileImport").addEventListener("change", e=>{
     try{
       const data = JSON.parse(ev.target.result);
       if(!data.meubles) throw new Error("format invalide");
-      state = data;
+      if(data.schemaVersion && data.schemaVersion > SCHEMA_VERSION){
+        alert("Attention : ce fichier a été créé avec une version plus récente de l'application. Certaines informations peuvent ne pas s'afficher correctement. Pensez à mettre à jour l'application (bandeau en haut de l'écran).");
+      }
+      state = migrateState(data);
       saveDraft(); render();
     }catch(err){
       alert("Fichier invalide ou illisible.");
@@ -617,6 +933,27 @@ async function generatePdf(){
   const PW = 210, PH = 297, MARGIN = 15;
   const CW = PW - MARGIN*2;
 
+  function drawWatermark(){
+    doc.setGState(new doc.GState({opacity:0.15}));
+    doc.setFontSize(70);
+    doc.setFont(undefined,"bold");
+    doc.setTextColor(200,30,30);
+    doc.text("RÉSOLU", PW/2, PH/2, {angle:35, align:"center"});
+    doc.setGState(new doc.GState({opacity:1}));
+    doc.setTextColor(0);
+  }
+
+  function footerInfo(){
+    doc.setFontSize(8);
+    doc.setFont(undefined,"normal");
+    doc.setTextColor(140);
+    doc.text(
+      `Rapport SAV — Auteur : ${state.auteur||"-"} — Magasin : ${state.magasin||"-"} — Date : ${state.date||"-"}`,
+      MARGIN, PH-8
+    );
+    doc.setTextColor(0);
+  }
+
   let first = true;
 
   for(const m of state.meubles){
@@ -626,14 +963,21 @@ async function generatePdf(){
     doc.setFontSize(18);
     doc.setFont(undefined,"bold");
     doc.text(m.reference || "Meuble", MARGIN, MARGIN+6);
+    if(m.designation){
+      doc.setFontSize(12);
+      doc.setFont(undefined,"normal");
+      doc.setTextColor(100);
+      doc.text(m.designation, MARGIN, MARGIN+12);
+      doc.setTextColor(0);
+    }
 
     doc.setDrawColor(200);
-    doc.line(MARGIN, MARGIN+10, PW-MARGIN, MARGIN+10);
+    doc.line(MARGIN, MARGIN+16, PW-MARGIN, MARGIN+16);
 
-    let y = MARGIN + 18;
+    let y = MARGIN + 24;
     if(m.photoEnsemble){
       const {w,h} = await loadImageDims(m.photoEnsemble);
-      const maxW = CW, maxH = 150;
+      const maxW = CW, maxH = 140;
       let dw=w, dh=h;
       const ratio = Math.min(maxW/dw, maxH/dh);
       dw*=ratio; dh*=ratio;
@@ -642,47 +986,69 @@ async function generatePdf(){
       y += dh + 10;
     }
 
-    // Tableau récap par type
+    // Tableau récap : total / résolus / restants, puis détail par type
+    const total = m.savs.length;
+    const resolus = m.savs.filter(s=>s.statut==="resolu").length;
+    const restants = total - resolus;
     const counts = {};
     m.savs.forEach(s=>{ counts[s.type]=(counts[s.type]||0)+1; });
+    const order = ["pose","reglage","conception","fabrication","defaut"];
+
     doc.setFontSize(12);
     doc.setFont(undefined,"bold");
     doc.text("Récapitulatif des SAV", MARGIN, y);
     y += 6;
+
+    const rowH = 7;
+    const colSplit = CW - 30;
+    const summaryRows = [
+      ["Total SAV", String(total), true],
+      ["Résolus", String(resolus), false],
+      ["Restants", String(restants), false]
+    ];
+    const detailRows = order.map(t=>[TYPE_LABELS[t], String(counts[t]||0), false]);
+    const allRows = [...summaryRows, ...detailRows];
+    const tableH = rowH * allRows.length;
+
+    doc.setDrawColor(210);
+    doc.setLineWidth(0.2);
+    doc.rect(MARGIN, y, CW, tableH);
+    doc.line(MARGIN+colSplit, y, MARGIN+colSplit, y+tableH);
+    // séparation entre le bloc résumé et le détail par type
+    doc.line(MARGIN, y+rowH*summaryRows.length, MARGIN+CW, y+rowH*summaryRows.length);
+
     doc.setFontSize(10);
-    doc.setFont(undefined,"normal");
-    const order = ["pose","reglage","conception","fabrication","defaut"];
-    doc.setDrawColor(220);
-    doc.rect(MARGIN, y, CW, (order.length+1)*7);
-    order.forEach((t,i)=>{
-      const ry = y + 7*(i+1);
-      doc.line(MARGIN, ry, MARGIN+CW, ry);
-      doc.text(TYPE_LABELS[t], MARGIN+3, ry-2);
-      doc.text(String(counts[t]||0), MARGIN+CW-15, ry-2);
+    allRows.forEach((row,i)=>{
+      const rowTop = y + rowH*i;
+      if(i>0) doc.line(MARGIN, rowTop, MARGIN+CW, rowTop);
+      doc.setFont(undefined, row[2] ? "bold" : "normal");
+      doc.text(row[0], MARGIN+3, rowTop+rowH-2.3);
+      doc.text(row[1], MARGIN+colSplit+8, rowTop+rowH-2.3);
     });
-    doc.setFont(undefined,"bold");
-    doc.text("Total", MARGIN+3, y+5);
-    doc.text(String(m.savs.length), MARGIN+CW-15, y+5);
-    doc.line(MARGIN+CW-25, y, MARGIN+CW-25, y+(order.length+1)*7);
+
+    footerInfo();
 
     // --- Une page par SAV ---
     for(const s of m.savs){
       doc.addPage();
+      const isResolu = s.statut === "resolu";
+      if(isResolu) drawWatermark();
+
       let sy = MARGIN;
       doc.setFontSize(14);
       doc.setFont(undefined,"bold");
       doc.text(m.reference || "Meuble", MARGIN, sy);
       sy += 8;
       doc.setFontSize(11);
+      doc.setFont(undefined,"normal");
       doc.text("Pièce : "+(s.piece||"-"), MARGIN, sy);
       sy += 6;
-      doc.text("Type : "+TYPE_LABELS[s.type], MARGIN, sy);
+      doc.text("Type : "+TYPE_LABELS[s.type]+(isResolu ? "   •   Statut : Résolu" : "   •   Statut : Ouvert"), MARGIN, sy);
       sy += 8;
       doc.setDrawColor(200);
       doc.line(MARGIN, sy, PW-MARGIN, sy);
       sy += 8;
 
-      doc.setFont(undefined,"normal");
       doc.setFontSize(11);
       const lines = doc.splitTextToSize(s.commentaire||"(pas de commentaire)", CW);
       doc.text(lines, MARGIN, sy);
@@ -690,12 +1056,12 @@ async function generatePdf(){
 
       const photos = s.photos || [];
       if(photos.length){
-        const remainingH = PH - MARGIN - sy;
+        const remainingH = PH - MARGIN - sy - 10;
         const cols = photos.length===1 ? 1 : 2;
         const gap = 6;
         const cellW = (CW - gap*(cols-1))/cols;
         const rows = Math.ceil(photos.length/cols);
-        const cellH = Math.min((remainingH - gap*(rows-1))/rows, 110);
+        const cellH = Math.min((remainingH - gap*(rows-1))/rows, 100);
 
         for(let i=0;i<photos.length;i++){
           const {w,h} = await loadImageDims(photos[i]);
@@ -708,68 +1074,81 @@ async function generatePdf(){
           const cy = sy + row*(cellH+gap) + (cellH-dh)/2;
           doc.addImage(photos[i], "JPEG", cx, cy, dw, dh);
         }
+        sy += rows*cellH + (rows-1)*gap + 10;
       }
+
+      // --- Fil de discussion ---
+      const fil = s.fil || [];
+      if(fil.length){
+        const ensurePage = (needed)=>{
+          if(sy + needed > PH - MARGIN - 6){
+            doc.addPage();
+            if(isResolu) drawWatermark();
+            sy = MARGIN;
+          }
+        };
+        ensurePage(10);
+        doc.setFontSize(11);
+        doc.setFont(undefined,"bold");
+        doc.text("Suivi", MARGIN, sy);
+        sy += 6;
+        doc.setDrawColor(220);
+        doc.line(MARGIN, sy-3, PW-MARGIN, sy-3);
+
+        fil.forEach(entry=>{
+          const label = entry.type==="resolution" ? "Résolution" : entry.type==="reouverture" ? "Réouverture" : "Réponse";
+          const meta = `${label} — ${entry.auteur||""} — ${entry.date||""}`;
+          const textLines = doc.splitTextToSize(entry.texte||"", CW);
+          const blockH = 5 + textLines.length*5 + 4;
+          ensurePage(blockH);
+          doc.setFontSize(9);
+          doc.setFont(undefined,"bold");
+          doc.setTextColor(90);
+          doc.text(meta, MARGIN, sy);
+          doc.setTextColor(0);
+          sy += 5;
+          doc.setFontSize(10);
+          doc.setFont(undefined,"normal");
+          doc.text(textLines, MARGIN, sy);
+          sy += textLines.length*5 + 4;
+        });
+      }
+
+      footerInfo();
     }
   }
 
   const fname = fileNameBase()+".pdf";
-  doc.save(fname);
-  return fname;
+  return { blob: doc.output("blob"), name: fname };
 }
 
-document.getElementById("btnExportPdf").addEventListener("click", async ()=>{
-  const btn = document.getElementById("btnExportPdf");
-  btn.disabled = true; btn.textContent = "Génération...";
-  try{
-    const pdfName = await generatePdf();
-    // Export du fichier exploitable en parallèle pour archive
-    const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
-    downloadBlob(blob, fileNameBase()+".json");
+/* ---------- INIT ---------- */
+document.getElementById("versionTag").textContent = "V"+APP_VERSION;
 
-    const subject = encodeURIComponent("Rapport SAV - "+(state.magasin||""));
-    const body = encodeURIComponent(
-      "Bonjour,\n\nVeuillez trouver ci-joint le rapport SAV du magasin "+(state.magasin||"")+
-      " (rédigé par "+(state.redacteur||"")+", le "+(state.date||"")+").\n\n"+
-      "Les fichiers "+pdfName+" et "+fileNameBase()+".json ont été téléchargés : merci de les joindre manuellement à cet e-mail avant envoi.\n\nCordialement."
-    );
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  } catch(e){
-    alert("Erreur lors de la génération du PDF : "+e.message);
-  } finally {
-    btn.disabled = false; btn.textContent = "Générer PDF";
-  }
-});
-
-/* ---------- SERVICE WORKER : offline + notification de mise à jour ---------- */
-/* Pattern repris de Ride Tracker : on n'active jamais une nouvelle version
-   sans action explicite de l'utilisateur (bouton "Mettre à jour"). */
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").then((reg) => {
-
-      // Une mise à jour est déjà en attente au moment du chargement
-      if (reg.waiting) showUpdateBanner(reg.waiting);
-
-      // Une nouvelle version vient d'être détectée pendant la session en cours
-      reg.addEventListener("updatefound", () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener("statechange", () => {
-          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-            showUpdateBanner(newWorker);
-          }
+function registerServiceWorker(){
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").then((reg) => {
+        if (reg.waiting) showUpdateBanner(reg.waiting);
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              showUpdateBanner(newWorker);
+            }
+          });
         });
-      });
-    }).catch(()=>{ /* SW indisponible (ex. ouverture en local file://) : app reste utilisable */ });
+      }).catch(()=>{ /* SW indisponible (ex. ouverture en local file://) : app reste utilisable */ });
 
-    // Une fois que le nouveau SW a pris le contrôle, on recharge une seule fois
-    let refreshed = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (refreshed) return;
-      refreshed = true;
-      window.location.reload();
+      let refreshed = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshed) return;
+        refreshed = true;
+        window.location.reload();
+      });
     });
-  });
+  }
 }
 
 function showUpdateBanner(worker){
@@ -781,10 +1160,26 @@ function showUpdateBanner(worker){
   };
 }
 
-/* ---------- INIT ---------- */
-loadDraft();
-if(!state.date) state.date = new Date().toISOString().slice(0,10);
-render();
+let appStarted = false;
+function startApp(){
+  if(appStarted) return;
+  appStarted = true;
+  loadDraft();
+  const session = getSession();
+  if(!state.auteur && session) state.auteur = session.nom;
+  if(!state.date) state.date = new Date().toISOString().slice(0,10);
+  render();
+}
+
+registerServiceWorker();
+const existingSession = getSession();
+if(existingSession){
+  hideLogin();
+  renderUserTag();
+  startApp();
+} else {
+  showLogin();
+}
 </script>
 </body>
 </html>

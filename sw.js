@@ -6,7 +6,7 @@
 // IMPORTANT : incrémenter CACHE_VERSION à chaque déploiement qui touche index.html.
 // Le bump force la suppression complète de l'ancien cache (event 'activate'),
 // donc une version mise à jour ne reste jamais coincée derrière un cache périmé.
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = 'sav-app-' + CACHE_VERSION;
 
 const ASSETS = [
@@ -49,10 +49,11 @@ self.addEventListener('fetch', (event) => {
   if (!event.request.url.startsWith(self.location.origin)) return;
 
   const isHTML = event.request.mode === 'navigate' || event.request.url.endsWith('.html') || event.request.url.endsWith('/');
+  const isUsersCsv = event.request.url.endsWith('users.csv');
 
-  if (isHTML) {
-    // Network-first pour le HTML : garantit un document valide et une détection
-    // rapide de nouvelle version. Fallback cache si hors-ligne.
+  if (isHTML || isUsersCsv) {
+    // Network-first pour le HTML et pour users.csv : la liste des utilisateurs
+    // doit toujours refléter le fichier actuel du dépôt, jamais une version en cache.
     event.respondWith(
       fetch(event.request)
         .then((response) => {
