@@ -6,7 +6,7 @@
 // IMPORTANT : incrémenter CACHE_VERSION à chaque déploiement qui touche index.html.
 // Le bump force la suppression complète de l'ancien cache (event 'activate'),
 // donc une version mise à jour ne reste jamais coincée derrière un cache périmé.
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = 'sav-app-' + CACHE_VERSION;
 
 const ASSETS = [

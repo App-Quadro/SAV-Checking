@@ -1,4 +1,4 @@
-# Suivi SAV Aménagement — V2.00.00
+# Suivi SAV Aménagement — V2.01.00
 
 Application locale, fichier unique, sans serveur. Toutes les données (texte + photos) restent dans le navigateur jusqu'à export. Le fichier `.json` exporté sert aussi de support d'échange entre l'animateur, Antoine (responsable showroom) et le bureau d'études.
 
@@ -32,15 +32,17 @@ Pour ajouter, modifier ou supprimer un accès : éditer directement ce fichier d
 
 **Important : ceci est une identification, pas une protection.** Le fichier est servi en clair par GitHub Pages et son contenu est visible par quiconque en connaît l'URL ou ouvre les outils de développement du navigateur. Adapté à un usage interne entre personnes de confiance ; ne pas y stocker de mot de passe utilisé ailleurs.
 
-Chaque utilisateur doit se connecter (nom + mot de passe) avant d'ouvrir ou créer un rapport. Son nom est ensuite utilisé automatiquement comme auteur du rapport et de chaque réponse ajoutée dans un fil de discussion, sans ressaisie. Le lien "Changer d'utilisateur" en haut de l'écran permet de se déconnecter (utile sur un poste partagé).
+**L'application est un site statique, sans base de données ni serveur.** Le menu (⋮ en haut à droite) propose "Changer mon mot de passe" et, pour un compte admin, "Gérer les utilisateurs" : ces deux actions ne modifient rien en ligne, elles génèrent un fichier `users.csv` à jour et le téléchargent. Il faut ensuite remplacer manuellement le fichier sur GitHub (commit) pour que le changement devienne effectif. C'est une contrainte structurelle de l'hébergement statique, pas une limitation contournable sans mettre en place un vrai backend.
+
+Chaque utilisateur se connecte (identifiant + mot de passe) avant d'accéder à l'écran d'accueil. Son nom est utilisé automatiquement comme auteur du rapport et de chaque réponse ajoutée dans un fil de discussion, sans ressaisie et sans champ modifiable (intégrité de la chaîne de suivi). Si le rapport importé a été initié par quelqu'un d'autre, son nom apparaît à côté de "Connecté : ..." dans l'en-tête.
 
 ## Utilisation
 
 1. Se connecter.
-2. Renseigner auteur (préréempli) / magasin / date.
-3. "+ Ajouter un meuble" : référence technique + désignation + photo de vue d'ensemble.
-4. Dans le meuble (tiroir dépliable) : "+ Ajouter un SAV" pour chaque défaut (pièce, type, commentaire texte ou dicté, photos — bouton vert pour ajouter plusieurs photos d'un coup).
-5. "Exporter le rapport" : popup avec PDF et JSON cochés par défaut. Le partage natif du téléphone/PC s'ouvre pour envoyer directement les fichiers, sinon ils sont téléchargés.
+2. Sur l'écran d'accueil : "Nouveau rapport" (ou "Reprendre le rapport en cours" si un brouillon existe) / "Importer un rapport".
+3. "+ Ajouter un meuble" : référence technique + désignation + photo de vue d'ensemble, tous obligatoires. L'ajout de photo ouvre un choix caméra / galerie.
+4. Dans le meuble (tiroir dépliable) : "+ Ajouter un SAV" pour chaque défaut : référence de la pièce, désignation de la pièce, un ou plusieurs types d'observation (cases à cocher), commentaire, et 1 à 4 photos — tous obligatoires.
+5. Menu (⋮) ou bouton "Exporter le rapport" : popup avec PDF et JSON cochés par défaut. Le partage natif du téléphone/PC s'ouvre pour envoyer directement les fichiers ; en cas d'échec du partage (fréquent sur Android après un délai de génération), bascule automatique sur le téléchargement direct.
 
 ### Circuit de traitement d'un SAV
 
@@ -52,6 +54,8 @@ Quand un destinataire reçoit le `.json`, il se connecte avec son propre compte,
 - régénérer le PDF et retransmettre le `.json` mis à jour à l'étape suivante de la chaîne.
 
 Toutes ces actions sont horodatées et attribuées à l'auteur connecté, et s'accumulent dans le fil sans jamais écraser les réponses précédentes.
+
+Cas particulier : si la même personne marque un SAV résolu puis le rouvre (ou l'inverse) avant d'avoir exporté le fichier, l'aller-retour n'est pas consigné dans l'historique (c'est traité comme une correction). Dès qu'un export a eu lieu, tout changement de statut redevient un événement enregistré de façon permanente, y compris pour un aller-retour de la même personne.
 
 ### Compatibilité entre versions
 
