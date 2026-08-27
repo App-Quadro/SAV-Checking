@@ -1,4 +1,4 @@
-# Suivi SAV Aménagement — V2.01.00
+# Suivi SAV Aménagement — V2.01.01
 
 Application locale, fichier unique, sans serveur. Toutes les données (texte + photos) restent dans le navigateur jusqu'à export. Le fichier `.json` exporté sert aussi de support d'échange entre l'animateur, Antoine (responsable showroom) et le bureau d'études.
 
@@ -32,9 +32,9 @@ Pour ajouter, modifier ou supprimer un accès : éditer directement ce fichier d
 
 **Important : ceci est une identification, pas une protection.** Le fichier est servi en clair par GitHub Pages et son contenu est visible par quiconque en connaît l'URL ou ouvre les outils de développement du navigateur. Adapté à un usage interne entre personnes de confiance ; ne pas y stocker de mot de passe utilisé ailleurs.
 
-**L'application est un site statique, sans base de données ni serveur.** Le menu (⋮ en haut à droite) propose "Changer mon mot de passe" et, pour un compte admin, "Gérer les utilisateurs" : ces deux actions ne modifient rien en ligne, elles génèrent un fichier `users.csv` à jour et le téléchargent. Il faut ensuite remplacer manuellement le fichier sur GitHub (commit) pour que le changement devienne effectif. C'est une contrainte structurelle de l'hébergement statique, pas une limitation contournable sans mettre en place un vrai backend.
+**L'application est un site statique, sans base de données ni serveur.** Il n'existe donc aucune fonction de gestion des comptes depuis l'app elle-même : ajout, suppression ou changement de mot de passe se font uniquement en éditant `users.csv` directement sur GitHub.
 
-Chaque utilisateur se connecte (identifiant + mot de passe) avant d'accéder à l'écran d'accueil. Son nom est utilisé automatiquement comme auteur du rapport et de chaque réponse ajoutée dans un fil de discussion, sans ressaisie et sans champ modifiable (intégrité de la chaîne de suivi). Si le rapport importé a été initié par quelqu'un d'autre, son nom apparaît à côté de "Connecté : ..." dans l'en-tête.
+Chaque utilisateur se connecte (identifiant + mot de passe) avant d'accéder à l'écran d'accueil. Son nom est utilisé automatiquement comme auteur du rapport et de chaque réponse ajoutée dans un fil de discussion, sans ressaisie et sans champ modifiable (intégrité de la chaîne de suivi). Si le rapport importé a été initié par quelqu'un d'autre, son nom apparaît à côté de "Connecté : ..." dans l'en-tête, et le bandeau centré en haut de l'écran indique s'il s'agit d'un nouveau rapport ou d'un rapport importé, avec sa date de création et son auteur d'origine. Cliquer sur le logo QUADRO dans l'en-tête ramène à tout moment à l'écran d'accueil.
 
 ## Utilisation
 
