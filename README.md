@@ -1,4 +1,4 @@
-# Suivi SAV Aménagement — V2.01.01
+# Suivi SAV Aménagement — V2.02.00
 
 Application locale, fichier unique, sans serveur. Toutes les données (texte + photos) restent dans le navigateur jusqu'à export. Le fichier `.json` exporté sert aussi de support d'échange entre l'animateur, Antoine (responsable showroom) et le bureau d'études.
 
@@ -34,7 +34,18 @@ Pour ajouter, modifier ou supprimer un accès : éditer directement ce fichier d
 
 **L'application est un site statique, sans base de données ni serveur.** Il n'existe donc aucune fonction de gestion des comptes depuis l'app elle-même : ajout, suppression ou changement de mot de passe se font uniquement en éditant `users.csv` directement sur GitHub.
 
-Chaque utilisateur se connecte (identifiant + mot de passe) avant d'accéder à l'écran d'accueil. Son nom est utilisé automatiquement comme auteur du rapport et de chaque réponse ajoutée dans un fil de discussion, sans ressaisie et sans champ modifiable (intégrité de la chaîne de suivi). Si le rapport importé a été initié par quelqu'un d'autre, son nom apparaît à côté de "Connecté : ..." dans l'en-tête, et le bandeau centré en haut de l'écran indique s'il s'agit d'un nouveau rapport ou d'un rapport importé, avec sa date de création et son auteur d'origine. Cliquer sur le logo QUADRO dans l'en-tête ramène à tout moment à l'écran d'accueil.
+Chaque utilisateur se connecte (identifiant + mot de passe) avant d'accéder à l'écran d'accueil. Son nom est utilisé automatiquement comme auteur du rapport et de chaque réponse ajoutée dans un fil de discussion, sans ressaisie et sans champ modifiable (intégrité de la chaîne de suivi). Si le rapport importé a été initié par quelqu'un d'autre, son nom apparaît à côté de "Connecté : ..." dans l'en-tête, et le bandeau centré en haut de l'écran indique s'il s'agit d'un nouveau rapport ou d'un rapport importé, avec le magasin, la date de création, l'auteur d'origine, et sur une seconde ligne le nombre de meubles et de SAV restant à résoudre. Cliquer sur le logo QUADRO dans l'en-tête ramène à tout moment à l'écran d'accueil.
+
+**Verrouillage par créateur.** Seul l'utilisateur qui a créé un meuble ou un SAV peut le modifier ou le supprimer. Les autres utilisateurs (y compris l'auteur original du rapport, si ce n'est pas lui qui a créé l'élément) peuvent toujours ajouter un nouveau SAV, répondre dans le fil de discussion, et marquer résolu/rouvrir — mais jamais éditer ou effacer ce qu'un autre a déjà rempli. Cela empêche toute tentative de modification a posteriori pour dissimuler un problème.
+
+## Créer un nouveau rapport
+
+La ville du magasin est demandée avant toute chose, dans une petite fenêtre dédiée : impossible de créer un rapport sans elle. "Écraser le brouillon en cours et repartir de zéro" (sur l'écran d'accueil) ramène systématiquement à l'écran d'accueil pour recommencer proprement, plutôt que d'ouvrir directement un rapport vide.
+
+## Photos
+
+- La photo de vue d'ensemble d'un meuble peut être réduite à une vignette (bouton dédié, indépendant du repli/dépli du groupe de SAV) pour ne pas dominer visuellement le reste du contenu.
+- Toute photo (meuble ou SAV) s'agrandit en plein écran d'un simple tap.
 
 ## Utilisation
 
@@ -42,7 +53,7 @@ Chaque utilisateur se connecte (identifiant + mot de passe) avant d'accéder à 
 2. Sur l'écran d'accueil : "Nouveau rapport" (ou "Reprendre le rapport en cours" si un brouillon existe) / "Importer un rapport".
 3. "+ Ajouter un meuble" : référence technique + désignation + photo de vue d'ensemble, tous obligatoires. L'ajout de photo ouvre un choix caméra / galerie.
 4. Dans le meuble (tiroir dépliable) : "+ Ajouter un SAV" pour chaque défaut : référence de la pièce, désignation de la pièce, un ou plusieurs types d'observation (cases à cocher), commentaire, et 1 à 4 photos — tous obligatoires.
-5. Menu (⋮) ou bouton "Exporter le rapport" : popup avec PDF et JSON cochés par défaut. Le partage natif du téléphone/PC s'ouvre pour envoyer directement les fichiers ; en cas d'échec du partage (fréquent sur Android après un délai de génération), bascule automatique sur le téléchargement direct.
+5. Menu (⋮) ou bouton "Exporter le rapport" : popup avec PDF et JSON cochés par défaut, puis "Enregistrer". Sur Chrome/Edge (PC et Android), un sélecteur de dossier natif s'ouvre pour choisir où enregistrer chaque fichier ; sur les navigateurs qui ne le permettent pas (Safari, Firefox), le fichier part directement dans le dossier de téléchargements. Une fois l'enregistrement confirmé, une popup propose de partager (email, messagerie...) si l'appareil le permet.
 
 ### Circuit de traitement d'un SAV
 
@@ -60,6 +71,10 @@ Cas particulier : si la même personne marque un SAV résolu puis le rouvre (ou 
 ### Compatibilité entre versions
 
 Chaque fichier exporté embarque un numéro de version de structure. Si un fichier plus récent est importé dans une app plus ancienne, un avertissement s'affiche invitant à mettre à jour (bandeau en haut de l'écran). Les anciens fichiers restent lisibles dans les versions plus récentes.
+
+### Structure du PDF
+
+Le rapport s'ouvre sur une page de garde globale (logo, magasin, auteur, date, récapitulatif de tous les meubles confondus), suivie d'une page de garde par meuble (avec son propre récapitulatif), puis d'une page par SAV. Sur chaque page sauf la garde globale, le petit symbole QUADRO apparaît en haut à droite, aligné à la référence du meuble ; sur chaque page de SAV, une vignette de la photo du meuble rappelle de quel meuble il s'agit. Dans les tableaux récapitulatifs : la ligne "Résolus" est en vert, "Restants" en rouge, avec un séparateur épais avant le détail par type.
 
 ## Limites à connaître
 
