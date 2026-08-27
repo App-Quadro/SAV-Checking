@@ -1,4 +1,4 @@
-# Suivi SAV Aménagement — V2.02.00
+# Suivi SAV Aménagement — V2.02.01
 
 Application locale, fichier unique, sans serveur. Toutes les données (texte + photos) restent dans le navigateur jusqu'à export. Le fichier `.json` exporté sert aussi de support d'échange entre l'animateur, Antoine (responsable showroom) et le bureau d'études.
 
@@ -37,6 +37,8 @@ Pour ajouter, modifier ou supprimer un accès : éditer directement ce fichier d
 Chaque utilisateur se connecte (identifiant + mot de passe) avant d'accéder à l'écran d'accueil. Son nom est utilisé automatiquement comme auteur du rapport et de chaque réponse ajoutée dans un fil de discussion, sans ressaisie et sans champ modifiable (intégrité de la chaîne de suivi). Si le rapport importé a été initié par quelqu'un d'autre, son nom apparaît à côté de "Connecté : ..." dans l'en-tête, et le bandeau centré en haut de l'écran indique s'il s'agit d'un nouveau rapport ou d'un rapport importé, avec le magasin, la date de création, l'auteur d'origine, et sur une seconde ligne le nombre de meubles et de SAV restant à résoudre. Cliquer sur le logo QUADRO dans l'en-tête ramène à tout moment à l'écran d'accueil.
 
 **Verrouillage par créateur.** Seul l'utilisateur qui a créé un meuble ou un SAV peut le modifier ou le supprimer. Les autres utilisateurs (y compris l'auteur original du rapport, si ce n'est pas lui qui a créé l'élément) peuvent toujours ajouter un nouveau SAV, répondre dans le fil de discussion, et marquer résolu/rouvrir — mais jamais éditer ou effacer ce qu'un autre a déjà rempli. Cela empêche toute tentative de modification a posteriori pour dissimuler un problème.
+
+**Commentaires du fil de discussion.** Chacun peut modifier ou supprimer ses propres commentaires tant que le rapport n'a pas été exporté. Dès qu'un export a eu lieu, ces commentaires sont figés pour tout le monde (mention "figé") — seul un compte avec le rôle `admin` dans `users.csv` peut encore les corriger en cas de besoin réel.
 
 ## Créer un nouveau rapport
 
