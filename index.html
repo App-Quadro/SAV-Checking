@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi SAV Aménagement</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#154f42">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1a1d1f;
+    --bg:#f6f7f5;
+    --card:#ffffff;
+    --line:#dcdfdc;
+    --accent:#1f6f5c;
+    --accent-dark:#154f42;
+    --danger:#b3412c;
+    --muted:#6b716e;
+    --pose:#2563eb;
+    --reglage:#d97706;
+    --conception:#7c3aed;
+    --fabrication:#dc2626;
+    --defaut:#4b5563;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding-bottom:80px;
+  }
+  header{
+    background:var(--accent-dark);
+    color:#fff;
+    padding:16px 18px;
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  header h1{margin:0;font-size:1.15rem;font-weight:700;}
+  header .sub{font-size:.8rem;opacity:.85;margin-top:2px;}
+
+  .container{max-width:760px;margin:0 auto;padding:14px;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+    margin-bottom:14px;
+  }
+
+  label{display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-bottom:4px;}
+  input[type=text], input[type=date], textarea, select{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:1rem;
+    background:#fff;
+    color:var(--ink);
+    margin-bottom:12px;
+  }
+  textarea{min-height:70px;resize:vertical;font-family:inherit;}
+  .row{display:flex;gap:10px;}
+  .row > div{flex:1;}
+
+  button{
+    font-family:inherit;
+    font-size:.95rem;
+    font-weight:600;
+    border-radius:8px;
+    border:none;
+    padding:11px 16px;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-secondary{background:#fff;color:var(--ink);border:1px solid var(--line);}
+  .btn-danger{background:#fff;color:var(--danger);border:1px solid var(--danger);}
+  .btn-danger:hover{background:var(--danger);color:#fff;}
+  .btn-block{width:100%;}
+  .btn-icon{padding:6px 10px;font-size:.85rem;}
+
+  .meuble{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    margin-bottom:12px;
+    overflow:hidden;
+  }
+  .meuble-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px;
+    cursor:pointer;
+    background:#eef1ee;
+  }
+  .meuble-head:hover{background:#e6eae6;}
+  .meuble-title{font-weight:700;font-size:1rem;}
+  .meuble-count{font-size:.78rem;color:var(--muted);margin-top:2px;}
+  .chevron{transition:transform .15s;font-size:1.1rem;color:var(--muted);}
+  .meuble.open .chevron{transform:rotate(90deg);}
+  .meuble-body{display:none;padding:14px;border-top:1px solid var(--line);}
+  .meuble.open .meuble-body{display:block;}
+
+  .thumb-ensemble{max-width:100%;border-radius:8px;margin-bottom:10px;border:1px solid var(--line);}
+
+  .sav-item{
+    border:1px solid var(--line);
+    border-left:5px solid var(--muted);
+    border-radius:8px;
+    padding:12px;
+    margin-bottom:10px;
+    background:#fbfbfa;
+  }
+  .sav-item[data-type="pose"]{border-left-color:var(--pose);}
+  .sav-item[data-type="reglage"]{border-left-color:var(--reglage);}
+  .sav-item[data-type="conception"]{border-left-color:var(--conception);}
+  .sav-item[data-type="fabrication"]{border-left-color:var(--fabrication);}
+  .sav-item[data-type="defaut"]{border-left-color:var(--defaut);}
+
+  .sav-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .sav-ref{font-weight:700;}
+  .badge{
+    display:inline-block;font-size:.7rem;font-weight:700;text-transform:uppercase;
+    padding:2px 8px;border-radius:20px;color:#fff;margin-left:6px;
+  }
+  .badge.pose{background:var(--pose);}
+  .badge.reglage{background:var(--reglage);}
+  .badge.conception{background:var(--conception);}
+  .badge.fabrication{background:var(--fabrication);}
+  .badge.defaut{background:var(--defaut);}
+
+  .sav-comment{font-size:.92rem;margin:8px 0;white-space:pre-wrap;}
+  .sav-photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .sav-photos img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
+  .sav-actions{display:flex;gap:8px;margin-top:8px;}
+
+  .add-sav-btn{margin-top:6px;}
+
+  .empty{color:var(--muted);font-size:.9rem;text-align:center;padding:14px;}
+
+  .footer-actions{
+    position:fixed;bottom:0;left:0;right:0;
+    background:#fff;border-top:1px solid var(--line);
+    padding:10px 14px;display:flex;gap:8px;z-index:20;
+  }
+  .footer-actions button{flex:1;}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal{
+    background:#fff;border-radius:14px 14px 0 0;
+    width:100%;max-width:760px;max-height:88vh;overflow-y:auto;
+    padding:18px;
+  }
+  @media(min-width:600px){
+    .modal-overlay{align-items:center;}
+    .modal{border-radius:14px;}
+  }
+  .modal h2{margin-top:0;font-size:1.05rem;}
+  .modal-actions{display:flex;gap:8px;margin-top:6px;}
+
+  .photo-input-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .photo-preview{position:relative;}
+  .photo-preview img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
+  .photo-preview .rm{
+    position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;
+    border-radius:50%;width:20px;height:20px;font-size:.7rem;line-height:20px;text-align:center;cursor:pointer;
+  }
+
+  .mic-btn{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:12px;display:inline-flex;align-items:center;gap:6px;font-size:.85rem;}
+  .mic-btn.rec{background:var(--danger);color:#fff;border-color:var(--danger);}
+
+  #fileImport{display:none;}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:-6px;margin-bottom:12px;}
+
+  .update-banner{
+    display:none;
+    align-items:center;justify-content:space-between;gap:12px;
+    background:var(--accent);color:#fff;
+    padding:10px 14px;font-size:.88rem;
+    position:sticky;top:0;z-index:30;
+  }
+  .update-banner.show{display:flex;}
+  .update-banner button{
+    background:#fff;color:var(--accent-dark);
+    padding:6px 12px;font-size:.85rem;flex:none;
+  }
+</style>
+</head>
+<body>
+
+<div class="update-banner" id="updateBanner">
+  <span>Une nouvelle version de l'application est disponible.</span>
+  <button id="updateBtn">Mettre à jour</button>
+</div>
+
+<header>
+  <h1>Suivi SAV — Aménagement magasin</h1>
+  <div class="sub" id="headerSub">Nouveau rapport</div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <label>Rédacteur</label>
+    <input type="text" id="fRedacteur" placeholder="Nom de l'animateur">
+    <div class="row">
+      <div>
+        <label>Magasin</label>
+        <input type="text" id="fMagasin" placeholder="Ex : Caen">
+      </div>
+      <div>
+        <label>Date</label>
+        <input type="date" id="fDate">
+      </div>
+    </div>
+  </div>
+
+  <div id="meublesList"></div>
+
+  <button class="btn-primary btn-block" id="btnAddMeuble">+ Ajouter un meuble</button>
+
+</div>
+
+<div class="footer-actions">
+  <button class="btn-secondary" id="btnImport">Importer</button>
+  <button class="btn-secondary" id="btnExportJson">Exporter fichier</button>
+  <button class="btn-primary" id="btnExportPdf">Générer PDF</button>
+</div>
+<input type="file" id="fileImport" accept="application/json">
+
+<!-- Modal ajout/édition SAV -->
+<div class="modal-overlay" id="savModalOverlay">
+  <div class="modal">
+    <h2 id="savModalTitle">Nouveau SAV</h2>
+    <label>Référence de la pièce</label>
+    <input type="text" id="mPiece" placeholder="Ex : côté gauche, façade, charnière...">
+    <label>Type de SAV</label>
+    <select id="mType">
+      <option value="pose">Pose</option>
+      <option value="reglage">Réglage</option>
+      <option value="conception">Conception</option>
+      <option value="fabrication">Fabrication</option>
+      <option value="defaut">Défaut matériel (accessoire externe)</option>
+    </select>
+    <label>Commentaire / constat</label>
+    <button type="button" class="mic-btn" id="mMicBtn">🎙️ Dictée vocale</button>
+    <textarea id="mCommentaire" placeholder="Décrivez le défaut constaté"></textarea>
+    <label>Photos du défaut</label>
+    <input type="file" id="mPhotoInput" accept="image/*" capture="environment" multiple>
+    <div class="photo-input-row" id="mPhotoPreview"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="mCancel" style="flex:1">Annuler</button>
+      <button class="btn-primary" id="mSave" style="flex:1">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal ajout meuble -->
+<div class="modal-overlay" id="meubleModalOverlay">
+  <div class="modal">
+    <h2>Nouveau meuble</h2>
+    <label>Référence du meuble</label>
+    <input type="text" id="nmRef" placeholder="Référence selon plan">
+    <label>Photo de la vue d'ensemble</label>
+    <input type="file" id="nmPhotoInput" accept="image/*" capture="environment">
+    <div class="photo-input-row" id="nmPhotoPreview"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="nmCancel" style="flex:1">Annuler</button>
+      <button class="btn-primary" id="nmSave" style="flex:1">Créer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- ETAT ---------- */
+const TYPE_LABELS = {
+  pose:"Pose", reglage:"Réglage", conception:"Conception",
+  fabrication:"Fabrication", defaut:"Défaut matériel"
+};
+
+let state = {
+  redacteur:"", magasin:"", date:"",
+  meubles: [] // {id, reference, photoEnsemble, open, savs:[{id, piece, type, commentaire, photos:[]}]}
+};
+
+let editing = { meubleId:null, savId:null }; // contexte pour la modale SAV
+let pendingPhotos = []; // photos en cours de saisie dans la modale SAV
+let pendingMeublePhoto = null;
+
+const LS_KEY = "sav_app_draft_v1";
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+function saveDraft(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){ /* stockage plein, on ignore */ }
+}
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ state = JSON.parse(raw); }
+  }catch(e){}
+}
+
+/* ---------- COMPRESSION IMAGE ---------- */
+function readAndCompressImage(file, maxDim=1400, quality=0.75){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w=img.width, h=img.height;
+        if(w>maxDim || h>maxDim){
+          if(w>h){ h = Math.round(h*maxDim/w); w = maxDim; }
+          else{ w = Math.round(w*maxDim/h); h = maxDim; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width=w; canvas.height=h;
+        canvas.getContext("2d").drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- RENDU ---------- */
+function render(){
+  document.getElementById("fRedacteur").value = state.redacteur || "";
+  document.getElementById("fMagasin").value = state.magasin || "";
+  document.getElementById("fDate").value = state.date || "";
+  document.getElementById("headerSub").textContent =
+    (state.magasin ? "Magasin : "+state.magasin : "Nouveau rapport") +
+    (state.meubles.length ? " — "+state.meubles.length+" meuble(s)" : "");
+
+  const list = document.getElementById("meublesList");
+  list.innerHTML = "";
+  if(state.meubles.length===0){
+    list.innerHTML = '<div class="empty">Aucun meuble ajouté pour l\'instant.</div>';
+    return;
+  }
+  state.meubles.forEach(m=>{
+    const div = document.createElement("div");
+    div.className = "meuble"+(m.open?" open":"");
+    const counts = {};
+    m.savs.forEach(s=>{ counts[s.type]=(counts[s.type]||0)+1; });
+    const countText = m.savs.length ? m.savs.length+" SAV" : "Aucun SAV";
+
+    div.innerHTML = `
+      <div class="meuble-head" data-toggle="${m.id}">
+        <div>
+          <div class="meuble-title">${escapeHtml(m.reference)}</div>
+          <div class="meuble-count">${countText}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="btn-danger btn-icon" data-del-meuble="${m.id}">Suppr.</button>
+          <span class="chevron">▶</span>
+        </div>
+      </div>
+      <div class="meuble-body">
+        ${m.photoEnsemble ? `<img class="thumb-ensemble" src="${m.photoEnsemble}">` : ""}
+        <div class="sav-list" id="savlist-${m.id}"></div>
+        <button class="btn-secondary btn-block add-sav-btn" data-add-sav="${m.id}">+ Ajouter un SAV</button>
+      </div>
+    `;
+    list.appendChild(div);
+
+    const savList = div.querySelector(`#savlist-${m.id}`);
+    if(m.savs.length===0){
+      savList.innerHTML = '<div class="empty">Aucun SAV sur ce meuble.</div>';
+    }
+    m.savs.forEach(s=>{
+      const el = document.createElement("div");
+      el.className = "sav-item";
+      el.dataset.type = s.type;
+      el.innerHTML = `
+        <div class="sav-head">
+          <div><span class="sav-ref">${escapeHtml(s.piece||"(pièce non renseignée)")}</span>
+          <span class="badge ${s.type}">${TYPE_LABELS[s.type]}</span></div>
+        </div>
+        <div class="sav-comment">${escapeHtml(s.commentaire||"")}</div>
+        <div class="sav-photos">${(s.photos||[]).map(p=>`<img src="${p}">`).join("")}</div>
+        <div class="sav-actions">
+          <button class="btn-secondary btn-icon" data-edit-sav="${m.id}|${s.id}">Modifier</button>
+          <button class="btn-danger btn-icon" data-del-sav="${m.id}|${s.id}">Supprimer</button>
+        </div>
+      `;
+      savList.appendChild(el);
+    });
+  });
+}
+
+function escapeHtml(str){
+  return (str||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ---------- EVENEMENTS FORM PRINCIPAL ---------- */
+document.getElementById("fRedacteur").addEventListener("input", e=>{ state.redacteur=e.target.value; saveDraft(); });
+document.getElementById("fMagasin").addEventListener("input", e=>{ state.magasin=e.target.value; saveDraft(); render(); });
+document.getElementById("fDate").addEventListener("input", e=>{ state.date=e.target.value; saveDraft(); });
+
+document.getElementById("meublesList").addEventListener("click", e=>{
+  const toggle = e.target.closest("[data-toggle]");
+  const delM = e.target.closest("[data-del-meuble]");
+  const addSav = e.target.closest("[data-add-sav]");
+  const editSav = e.target.closest("[data-edit-sav]");
+  const delSav = e.target.closest("[data-del-sav]");
+
+  if(toggle){
+    const m = state.meubles.find(x=>x.id===toggle.dataset.toggle);
+    m.open = !m.open;
+    saveDraft(); render();
+  }
+  if(delM){
+    if(confirm("Supprimer ce meuble et tous ses SAV ?")){
+      state.meubles = state.meubles.filter(x=>x.id!==delM.dataset.delMeuble);
+      saveDraft(); render();
+    }
+  }
+  if(addSav){
+    openSavModal(addSav.dataset.addSav, null);
+  }
+  if(editSav){
+    const [mid,sid] = editSav.dataset.editSav.split("|");
+    openSavModal(mid, sid);
+  }
+  if(delSav){
+    const [mid,sid] = delSav.dataset.delSav.split("|");
+    if(confirm("Supprimer ce SAV ?")){
+      const m = state.meubles.find(x=>x.id===mid);
+      m.savs = m.savs.filter(s=>s.id!==sid);
+      saveDraft(); render();
+    }
+  }
+});
+
+/* ---------- MODALE NOUVEAU MEUBLE ---------- */
+const meubleOverlay = document.getElementById("meubleModalOverlay");
+document.getElementById("btnAddMeuble").addEventListener("click", ()=>{
+  document.getElementById("nmRef").value="";
+  document.getElementById("nmPhotoPreview").innerHTML="";
+  pendingMeublePhoto = null;
+  meubleOverlay.classList.add("show");
+});
+document.getElementById("nmCancel").addEventListener("click", ()=> meubleOverlay.classList.remove("show"));
+document.getElementById("nmPhotoInput").addEventListener("change", async e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  pendingMeublePhoto = await readAndCompressImage(f, 1600, 0.8);
+  document.getElementById("nmPhotoPreview").innerHTML = `<div class="photo-preview"><img src="${pendingMeublePhoto}"></div>`;
+});
+document.getElementById("nmSave").addEventListener("click", ()=>{
+  const ref = document.getElementById("nmRef").value.trim();
+  if(!ref){ alert("Merci de renseigner la référence du meuble."); return; }
+  state.meubles.push({
+    id: uid(), reference: ref, photoEnsemble: pendingMeublePhoto,
+    open:true, savs:[]
+  });
+  saveDraft(); render();
+  meubleOverlay.classList.remove("show");
+});
+
+/* ---------- MODALE SAV ---------- */
+const savOverlay = document.getElementById("savModalOverlay");
+
+function openSavModal(meubleId, savId){
+  editing = { meubleId, savId };
+  const m = state.meubles.find(x=>x.id===meubleId);
+  let s = null;
+  if(savId) s = m.savs.find(x=>x.id===savId);
+
+  document.getElementById("savModalTitle").textContent = savId ? "Modifier le SAV" : "Nouveau SAV";
+  document.getElementById("mPiece").value = s ? s.piece : "";
+  document.getElementById("mType").value = s ? s.type : "pose";
+  document.getElementById("mCommentaire").value = s ? s.commentaire : "";
+  pendingPhotos = s ? [...(s.photos||[])] : [];
+  renderPendingPhotos();
+  savOverlay.classList.add("show");
+}
+
+function renderPendingPhotos(){
+  const box = document.getElementById("mPhotoPreview");
+  box.innerHTML = pendingPhotos.map((p,i)=>`
+    <div class="photo-preview"><img src="${p}"><div class="rm" data-rm-photo="${i}">✕</div></div>
+  `).join("");
+}
+document.getElementById("mPhotoPreview").addEventListener("click", e=>{
+  const rm = e.target.closest("[data-rm-photo]");
+  if(rm){ pendingPhotos.splice(parseInt(rm.dataset.rmPhoto),1); renderPendingPhotos(); }
+});
+document.getElementById("mPhotoInput").addEventListener("change", async e=>{
+  for(const f of e.target.files){
+    pendingPhotos.push(await readAndCompressImage(f, 1400, 0.75));
+  }
+  renderPendingPhotos();
+  e.target.value = "";
+});
+
+document.getElementById("mCancel").addEventListener("click", ()=> savOverlay.classList.remove("show"));
+
+document.getElementById("mSave").addEventListener("click", ()=>{
+  const piece = document.getElementById("mPiece").value.trim();
+  const type = document.getElementById("mType").value;
+  const commentaire = document.getElementById("mCommentaire").value.trim();
+  if(!piece){ alert("Merci de renseigner la référence de la pièce."); return; }
+
+  const m = state.meubles.find(x=>x.id===editing.meubleId);
+  if(editing.savId){
+    const s = m.savs.find(x=>x.id===editing.savId);
+    s.piece=piece; s.type=type; s.commentaire=commentaire; s.photos=[...pendingPhotos];
+  } else {
+    m.savs.push({ id:uid(), piece, type, commentaire, photos:[...pendingPhotos] });
+  }
+  saveDraft(); render();
+  savOverlay.classList.remove("show");
+});
+
+/* ---------- DICTEE VOCALE ---------- */
+const micBtn = document.getElementById("mMicBtn");
+let recognition = null;
+let recognizing = false;
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SpeechRec){
+  recognition = new SpeechRec();
+  recognition.lang = "fr-FR";
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.onresult = (ev)=>{
+    let text = "";
+    for(let i=ev.resultIndex;i<ev.results.length;i++){
+      text += ev.results[i][0].transcript;
+    }
+    const ta = document.getElementById("mCommentaire");
+    ta.value = (ta.value ? ta.value+" " : "") + text.trim();
+  };
+  recognition.onend = ()=>{ recognizing=false; micBtn.classList.remove("rec"); micBtn.textContent="🎙️ Dictée vocale"; };
+} else {
+  micBtn.style.display = "none";
+}
+micBtn.addEventListener("click", ()=>{
+  if(!recognition) return;
+  if(recognizing){ recognition.stop(); return; }
+  recognizing = true;
+  micBtn.classList.add("rec");
+  micBtn.textContent = "⏺ Enregistrement... (toucher pour arrêter)";
+  recognition.start();
+});
+
+/* ---------- EXPORT / IMPORT JSON ---------- */
+function fileNameBase(){
+  const mag = (state.magasin||"magasin").replace(/[^a-z0-9]+/gi,"_");
+  const d = state.date || new Date().toISOString().slice(0,10);
+  return `SAV_${mag}_${d}`;
+}
+
+document.getElementById("btnExportJson").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  downloadBlob(blob, fileNameBase()+".json");
+});
+
+document.getElementById("btnImport").addEventListener("click", ()=> document.getElementById("fileImport").click());
+document.getElementById("fileImport").addEventListener("change", e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!data.meubles) throw new Error("format invalide");
+      state = data;
+      saveDraft(); render();
+    }catch(err){
+      alert("Fichier invalide ou illisible.");
+    }
+  };
+  reader.readAsText(f);
+  e.target.value = "";
+});
+
+function downloadBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+/* ---------- GENERATION PDF ---------- */
+function loadImageDims(dataUrl){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=> resolve({img, w:img.width, h:img.height});
+    img.src = dataUrl;
+  });
+}
+
+async function generatePdf(){
+  if(state.meubles.length===0){ alert("Ajoutez au moins un meuble avant de générer le rapport."); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:"mm", format:"a4" });
+  const PW = 210, PH = 297, MARGIN = 15;
+  const CW = PW - MARGIN*2;
+
+  let first = true;
+
+  for(const m of state.meubles){
+    if(!first) doc.addPage(); else first=false;
+
+    // --- Page de garde meuble ---
+    doc.setFontSize(18);
+    doc.setFont(undefined,"bold");
+    doc.text(m.reference || "Meuble", MARGIN, MARGIN+6);
+
+    doc.setDrawColor(200);
+    doc.line(MARGIN, MARGIN+10, PW-MARGIN, MARGIN+10);
+
+    let y = MARGIN + 18;
+    if(m.photoEnsemble){
+      const {w,h} = await loadImageDims(m.photoEnsemble);
+      const maxW = CW, maxH = 150;
+      let dw=w, dh=h;
+      const ratio = Math.min(maxW/dw, maxH/dh);
+      dw*=ratio; dh*=ratio;
+      const x = MARGIN + (CW-dw)/2;
+      doc.addImage(m.photoEnsemble, "JPEG", x, y, dw, dh);
+      y += dh + 10;
+    }
+
+    // Tableau récap par type
+    const counts = {};
+    m.savs.forEach(s=>{ counts[s.type]=(counts[s.type]||0)+1; });
+    doc.setFontSize(12);
+    doc.setFont(undefined,"bold");
+    doc.text("Récapitulatif des SAV", MARGIN, y);
+    y += 6;
+    doc.setFontSize(10);
+    doc.setFont(undefined,"normal");
+    const order = ["pose","reglage","conception","fabrication","defaut"];
+    doc.setDrawColor(220);
+    doc.rect(MARGIN, y, CW, (order.length+1)*7);
+    order.forEach((t,i)=>{
+      const ry = y + 7*(i+1);
+      doc.line(MARGIN, ry, MARGIN+CW, ry);
+      doc.text(TYPE_LABELS[t], MARGIN+3, ry-2);
+      doc.text(String(counts[t]||0), MARGIN+CW-15, ry-2);
+    });
+    doc.setFont(undefined,"bold");
+    doc.text("Total", MARGIN+3, y+5);
+    doc.text(String(m.savs.length), MARGIN+CW-15, y+5);
+    doc.line(MARGIN+CW-25, y, MARGIN+CW-25, y+(order.length+1)*7);
+
+    // --- Une page par SAV ---
+    for(const s of m.savs){
+      doc.addPage();
+      let sy = MARGIN;
+      doc.setFontSize(14);
+      doc.setFont(undefined,"bold");
+      doc.text(m.reference || "Meuble", MARGIN, sy);
+      sy += 8;
+      doc.setFontSize(11);
+      doc.text("Pièce : "+(s.piece||"-"), MARGIN, sy);
+      sy += 6;
+      doc.text("Type : "+TYPE_LABELS[s.type], MARGIN, sy);
+      sy += 8;
+      doc.setDrawColor(200);
+      doc.line(MARGIN, sy, PW-MARGIN, sy);
+      sy += 8;
+
+      doc.setFont(undefined,"normal");
+      doc.setFontSize(11);
+      const lines = doc.splitTextToSize(s.commentaire||"(pas de commentaire)", CW);
+      doc.text(lines, MARGIN, sy);
+      sy += lines.length*5.5 + 8;
+
+      const photos = s.photos || [];
+      if(photos.length){
+        const remainingH = PH - MARGIN - sy;
+        const cols = photos.length===1 ? 1 : 2;
+        const gap = 6;
+        const cellW = (CW - gap*(cols-1))/cols;
+        const rows = Math.ceil(photos.length/cols);
+        const cellH = Math.min((remainingH - gap*(rows-1))/rows, 110);
+
+        for(let i=0;i<photos.length;i++){
+          const {w,h} = await loadImageDims(photos[i]);
+          let dw=w, dh=h;
+          const ratio = Math.min(cellW/dw, cellH/dh);
+          dw*=ratio; dh*=ratio;
+          const col = i % cols;
+          const row = Math.floor(i/cols);
+          const cx = MARGIN + col*(cellW+gap) + (cellW-dw)/2;
+          const cy = sy + row*(cellH+gap) + (cellH-dh)/2;
+          doc.addImage(photos[i], "JPEG", cx, cy, dw, dh);
+        }
+      }
+    }
+  }
+
+  const fname = fileNameBase()+".pdf";
+  doc.save(fname);
+  return fname;
+}
+
+document.getElementById("btnExportPdf").addEventListener("click", async ()=>{
+  const btn = document.getElementById("btnExportPdf");
+  btn.disabled = true; btn.textContent = "Génération...";
+  try{
+    const pdfName = await generatePdf();
+    // Export du fichier exploitable en parallèle pour archive
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    downloadBlob(blob, fileNameBase()+".json");
+
+    const subject = encodeURIComponent("Rapport SAV - "+(state.magasin||""));
+    const body = encodeURIComponent(
+      "Bonjour,\n\nVeuillez trouver ci-joint le rapport SAV du magasin "+(state.magasin||"")+
+      " (rédigé par "+(state.redacteur||"")+", le "+(state.date||"")+").\n\n"+
+      "Les fichiers "+pdfName+" et "+fileNameBase()+".json ont été téléchargés : merci de les joindre manuellement à cet e-mail avant envoi.\n\nCordialement."
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  } catch(e){
+    alert("Erreur lors de la génération du PDF : "+e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Générer PDF";
+  }
+});
+
+/* ---------- SERVICE WORKER : offline + notification de mise à jour ---------- */
+/* Pattern repris de Ride Tracker : on n'active jamais une nouvelle version
+   sans action explicite de l'utilisateur (bouton "Mettre à jour"). */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").then((reg) => {
+
+      // Une mise à jour est déjà en attente au moment du chargement
+      if (reg.waiting) showUpdateBanner(reg.waiting);
+
+      // Une nouvelle version vient d'être détectée pendant la session en cours
+      reg.addEventListener("updatefound", () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener("statechange", () => {
+          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            showUpdateBanner(newWorker);
+          }
+        });
+      });
+    }).catch(()=>{ /* SW indisponible (ex. ouverture en local file://) : app reste utilisable */ });
+
+    // Une fois que le nouveau SW a pris le contrôle, on recharge une seule fois
+    let refreshed = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshed) return;
+      refreshed = true;
+      window.location.reload();
+    });
+  });
+}
+
+function showUpdateBanner(worker){
+  const banner = document.getElementById("updateBanner");
+  banner.classList.add("show");
+  document.getElementById("updateBtn").onclick = () => {
+    worker.postMessage("SKIP_WAITING");
+    banner.classList.remove("show");
+  };
+}
+
+/* ---------- INIT ---------- */
+loadDraft();
+if(!state.date) state.date = new Date().toISOString().slice(0,10);
+render();
+</script>
+</body>
+</html>
