@@ -515,7 +515,7 @@
 
 <script>
 /* ---------- VERSION ---------- */
-const APP_VERSION = "2.03.04"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
+const APP_VERSION = "2.03.06"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
 const SCHEMA_VERSION = 3; // version de structure du fichier .json échangé entre utilisateurs
 const MAX_SAV_PHOTOS = 4;
 
@@ -1404,11 +1404,13 @@ async function generatePdf(){
   const CW = PW - MARGIN*2;
 
   function drawWatermark(){
-    doc.setGState(new doc.GState({opacity:0.15}));
+    doc.setGState(new doc.GState({opacity:0.35}));
     doc.setFontSize(70);
     doc.setFont(undefined,"bold");
     doc.setTextColor(200,30,30);
-    doc.text("RÉSOLU", PW/2, PH/2, {angle:35, align:"center"});
+    // Bas de page (au-dessus de tout en couche, mais positionné plus bas que
+    // la zone habituelle des photos pour ne pas s'y superposer visuellement).
+    doc.text("RÉSOLU", PW/2, PH-45, {angle:35, align:"center"});
     doc.setGState(new doc.GState({opacity:1}));
     doc.setTextColor(0);
   }
@@ -1602,7 +1604,7 @@ async function generatePdf(){
       if(fil.length){
         const ensurePage = (needed)=>{
           if(sy + needed > PH - MARGIN - 6){
-            if(isResolu) drawWatermark(); // tamponner la page qu'on quitte, une fois son contenu déjà dessiné
+            if(isResolu) drawWatermark(); // tamponné en dernier sur la page qu'on quitte, une fois tout son contenu posé
             doc.addPage();
             drawCornerLogo();
             sy = MARGIN;
@@ -1635,7 +1637,7 @@ async function generatePdf(){
         });
       }
 
-      if(isResolu) drawWatermark(); // tamponné en dernier, au-dessus des photos et du texte déjà posés
+      if(isResolu) drawWatermark(); // tamponné en dernier, toujours au-dessus, mais positionné bas sur la page
       footerInfo();
     }
   }
