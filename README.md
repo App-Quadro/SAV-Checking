@@ -1,4 +1,4 @@
-# Suivi SAV Aménagement — V2.02.01
+# Suivi SAV Aménagement — V2.03.00
 
 Application locale, fichier unique, sans serveur. Toutes les données (texte + photos) restent dans le navigateur jusqu'à export. Le fichier `.json` exporté sert aussi de support d'échange entre l'animateur, Antoine (responsable showroom) et le bureau d'études.
 
@@ -55,7 +55,7 @@ La ville du magasin est demandée avant toute chose, dans une petite fenêtre d�
 2. Sur l'écran d'accueil : "Nouveau rapport" (ou "Reprendre le rapport en cours" si un brouillon existe) / "Importer un rapport".
 3. "+ Ajouter un meuble" : référence technique + désignation + photo de vue d'ensemble, tous obligatoires. L'ajout de photo ouvre un choix caméra / galerie.
 4. Dans le meuble (tiroir dépliable) : "+ Ajouter un SAV" pour chaque défaut : référence de la pièce, désignation de la pièce, un ou plusieurs types d'observation (cases à cocher), commentaire, et 1 à 4 photos — tous obligatoires.
-5. Menu (⋮) ou bouton "Exporter le rapport" : popup avec PDF et JSON cochés par défaut, puis "Enregistrer". Sur Chrome/Edge (PC et Android), un sélecteur de dossier natif s'ouvre pour choisir où enregistrer chaque fichier ; sur les navigateurs qui ne le permettent pas (Safari, Firefox), le fichier part directement dans le dossier de téléchargements. Une fois l'enregistrement confirmé, une popup propose de partager (email, messagerie...) si l'appareil le permet.
+5. Menu (⋮) ou bouton "Exporter le rapport" : popup avec PDF et JSON cochés par défaut, puis "Exporter". La fenêtre de partage native de l'appareil s'ouvre directement avec le ou les fichiers : on y choisit une appli (mail, messagerie, Drive...) ou "Enregistrer dans Fichiers/Téléchargements" — en un seul geste, sans repasser par les dossiers. Si le partage n'est pas disponible sur l'appareil ou le navigateur (certains PC sans appli de partage configurée), le ou les fichiers sont téléchargés directement dans le dossier de téléchargements.
 
 ### Circuit de traitement d'un SAV
 

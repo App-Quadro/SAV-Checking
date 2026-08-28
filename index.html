@@ -414,22 +414,10 @@
     <label style="display:flex;align-items:center;gap:10px;font-size:1rem;text-transform:none;font-weight:400;margin-bottom:12px;">
       <input type="checkbox" id="cbExportJson" checked style="width:auto;margin:0;"> Fichier exploitable (.json, pour réimport)
     </label>
-    <div class="hint" id="exportHint">Un sélecteur de dossier s'ouvre si votre navigateur le permet (Chrome/Edge), sinon le fichier est enregistré dans le dossier de téléchargements. Le partage sera proposé juste après.</div>
+    <div class="hint" id="exportHint">La fenêtre de partage de votre appareil s'ouvre : choisissez une appli (mail, messagerie...) ou "Enregistrer dans Fichiers/Téléchargements". Si le partage n'est pas disponible sur cet appareil, le(s) fichier(s) sont téléchargés directement.</div>
     <div class="modal-actions">
       <button class="btn-secondary" id="exCancel" style="flex:1">Annuler</button>
-      <button class="btn-primary" id="exConfirm" style="flex:1">Enregistrer</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal proposition de partage post-enregistrement -->
-<div class="modal-overlay" id="postSaveModalOverlay">
-  <div class="modal">
-    <h2>Fichier(s) enregistré(s)</h2>
-    <div class="hint">Vous pouvez les partager maintenant (email, messagerie...) ou terminer ici.</div>
-    <div class="modal-actions">
-      <button class="btn-secondary" id="postSaveDone" style="flex:1">Terminé</button>
-      <button class="btn-primary" id="postSaveShare" style="flex:1">Partager</button>
+      <button class="btn-primary" id="exConfirm" style="flex:1">Exporter</button>
     </div>
   </div>
 </div>
@@ -527,7 +515,7 @@
 
 <script>
 /* ---------- VERSION ---------- */
-const APP_VERSION = "2.02.02"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
+const APP_VERSION = "2.03.00"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
 const SCHEMA_VERSION = 3; // version de structure du fichier .json échangé entre utilisateurs
 const MAX_SAV_PHOTOS = 4;
 
@@ -1249,33 +1237,6 @@ function markExported(){
   saveDraft();
 }
 
-/* Enregistre un blob : sélecteur de dossier natif si le navigateur le permet
-   (Chrome/Edge desktop et Android), sinon téléchargement classique. Retourne
-   true si le fichier a bien été traité, false si l'utilisateur a annulé
-   volontairement le sélecteur. */
-async function saveFileWithPicker(blob, suggestedName, mimeType, extensions){
-  if(window.showSaveFilePicker){
-    try{
-      const handle = await window.showSaveFilePicker({
-        suggestedName,
-        types: [{ description: mimeType, accept: { [mimeType]: extensions } }]
-      });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      return true;
-    }catch(e){
-      if(e.name === "AbortError") return false;
-      downloadBlob(blob, suggestedName);
-      return true;
-    }
-  }
-  downloadBlob(blob, suggestedName);
-  return true;
-}
-
-let lastExportedFiles = [];
-
 document.getElementById("exConfirm").addEventListener("click", async ()=>{
   const wantPdf = document.getElementById("cbExportPdf").checked;
   const wantJson = document.getElementById("cbExportJson").checked;
@@ -1285,13 +1246,12 @@ document.getElementById("exConfirm").addEventListener("click", async ()=>{
   btn.disabled = true; btn.textContent = "Génération...";
   try{
     const filesToShare = [];
-
     let pdfResult = null;
+
     if(wantPdf){
       pdfResult = await generatePdf();
       filesToShare.push(new File([pdfResult.blob], pdfResult.name, {type:"application/pdf"}));
     }
-
     let jsonBlob = null, jsonName = null;
     if(wantJson){
       markExported();
@@ -1300,84 +1260,70 @@ document.getElementById("exConfirm").addEventListener("click", async ()=>{
       filesToShare.push(new File([jsonBlob], jsonName, {type:"application/json"}));
     }
 
-    let savedAny = false;
-    if(pdfResult){
-      const ok = await saveFileWithPicker(pdfResult.blob, pdfResult.name, "application/pdf", [".pdf"]);
-      savedAny = savedAny || ok;
-    }
-    if(jsonBlob){
-      const ok = await saveFileWithPicker(jsonBlob, jsonName, "application/json", [".json"]);
-      savedAny = savedAny || ok;
-    }
-
     document.getElementById("exportModalOverlay").classList.remove("show");
     render();
 
-    if(savedAny){
-      lastExportedFiles = filesToShare;
-      if(navigator.canShare && navigator.canShare({files:filesToShare})){
-        document.getElementById("postSaveModalOverlay").classList.add("show");
+    // Un seul geste : la fenêtre de partage native du téléphone/PC s'ouvre
+    // directement avec le ou les fichiers. L'utilisateur y choisit une appli
+    // (mail, messagerie...) OU "Enregistrer dans Fichiers" / "Téléchargements"
+    // depuis cette même fenêtre — aucune manipulation de dossier séparée.
+    let shared = false;
+    if(navigator.canShare && navigator.canShare({files:filesToShare})){
+      try{
+        await navigator.share({
+          files: filesToShare,
+          title: "Rapport SAV "+(state.magasin||""),
+          text: "Rapport SAV "+(state.magasin||"")+" du "+(state.date||"")
+        });
+        shared = true;
+      }catch(shareErr){
+        if(shareErr.name === "AbortError"){
+          // l'utilisateur a fermé la fenêtre de partage volontairement : rien à faire.
+          shared = true;
+        }
+        // toute autre erreur : on bascule sur le téléchargement direct ci-dessous.
       }
+    }
+    if(!shared){
+      if(pdfResult) downloadBlob(pdfResult.blob, pdfResult.name);
+      if(jsonBlob) downloadBlob(jsonBlob, jsonName);
     }
   } catch(e){
     alert("Erreur lors de l'export : "+e.message);
   } finally {
-    btn.disabled = false; btn.textContent = "Enregistrer";
+    btn.disabled = false; btn.textContent = "Exporter";
   }
 });
 
-document.getElementById("postSaveDone").addEventListener("click", ()=>{
-  document.getElementById("postSaveModalOverlay").classList.remove("show");
-});
-document.getElementById("postSaveShare").addEventListener("click", async ()=>{
-  document.getElementById("postSaveModalOverlay").classList.remove("show");
-  try{
-    await navigator.share({
-      files: lastExportedFiles,
-      title: "Rapport SAV "+(state.magasin||""),
-      text: "Rapport SAV "+(state.magasin||"")+" du "+(state.date||"")
-    });
-  }catch(e){
-    // annulation ou échec du partage : le fichier est déjà enregistré, rien à faire de plus.
-  }
-});
-document.getElementById("fileImport").addEventListener("change", e=>{
+document.getElementById("fileImport").addEventListener("change", async e=>{
   const f = e.target.files[0];
   if(!f) return;
-  const reader = new FileReader();
-  reader.onload = ev=>{
+  try{
+    // file.text() est plus fiable que FileReader sur Android, notamment avec
+    // les fichiers venant du sélecteur "stockage cloud" (Drive, etc.).
+    const raw = (await f.text()).replace(/^\uFEFF/, "").trim();
+    if(!raw){ alert("Le fichier sélectionné est vide ou n'a pas pu être lu correctement."); return; }
+    let data;
     try{
-      // Certains partages/téléchargements Android ajoutent un BOM UTF-8 en tête
-      // de fichier, ce qui fait échouer JSON.parse sans que le fichier soit
-      // réellement invalide : on le retire avant de parser.
-      const raw = String(ev.target.result || "").replace(/^\uFEFF/, "").trim();
-      if(!raw){ alert("Le fichier sélectionné est vide ou n'a pas pu être lu correctement."); return; }
-      let data;
-      try{
-        data = JSON.parse(raw);
-      }catch(parseErr){
-        alert("Ce fichier n'est pas un JSON valide (contenu illisible). Vérifiez que le bon fichier a bien été sélectionné.");
-        return;
-      }
-      if(!data || !data.meubles){
-        alert("Ce fichier JSON ne correspond pas à un rapport SAV (structure attendue absente).");
-        return;
-      }
-      if(data.schemaVersion && data.schemaVersion > SCHEMA_VERSION){
-        alert("Attention : ce fichier a été créé avec une version plus récente de l'application. Certaines informations peuvent ne pas s'afficher correctement. Pensez à mettre à jour l'application (bandeau en haut de l'écran).");
-      }
-      state = migrateState(data);
-      state.origine = "importe"; // toujours vrai en passant par ce flux, quel que soit l'auteur d'origine
-      saveDraft();
-      showReport();
-    }catch(err){
-      alert("Fichier invalide ou illisible.");
+      data = JSON.parse(raw);
+    }catch(parseErr){
+      alert("Ce fichier n'est pas un JSON valide (contenu illisible). Vérifiez que le bon fichier a bien été sélectionné.");
+      return;
     }
-  };
-  reader.onerror = ()=>{
-    alert("Impossible de lire ce fichier sur cet appareil. Réessayez, ou renommez le fichier en .json si son extension a été modifiée.");
-  };
-  reader.readAsText(f);
+    if(!data || !data.meubles){
+      alert("Ce fichier JSON ne correspond pas à un rapport SAV (structure attendue absente).");
+      return;
+    }
+    if(data.schemaVersion && data.schemaVersion > SCHEMA_VERSION){
+      alert("Attention : ce fichier a été créé avec une version plus récente de l'application. Certaines informations peuvent ne pas s'afficher correctement. Pensez à mettre à jour l'application (bandeau en haut de l'écran).");
+    }
+    state = migrateState(data);
+    state.origine = "importe"; // toujours vrai en passant par ce flux, quel que soit l'auteur d'origine
+    saveDraft();
+    showReport();
+  }catch(err){
+    alert("Impossible de lire ce fichier sur cet appareil (" + err.message + "). Réessayez, ou renommez-le en .json si son extension a été modifiée.");
+  }
   e.target.value = "";
 });
 
