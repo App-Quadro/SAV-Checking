@@ -1,4 +1,4 @@
-# Suivi SAV Aménagement — V2.03.00
+# Suivi SAV Aménagement — V2.03.03
 
 Application locale, fichier unique, sans serveur. Toutes les données (texte + photos) restent dans le navigateur jusqu'à export. Le fichier `.json` exporté sert aussi de support d'échange entre l'animateur, Antoine (responsable showroom) et le bureau d'études.
 
@@ -55,7 +55,7 @@ La ville du magasin est demandée avant toute chose, dans une petite fenêtre d�
 2. Sur l'écran d'accueil : "Nouveau rapport" (ou "Reprendre le rapport en cours" si un brouillon existe) / "Importer un rapport".
 3. "+ Ajouter un meuble" : référence technique + désignation + photo de vue d'ensemble, tous obligatoires. L'ajout de photo ouvre un choix caméra / galerie.
 4. Dans le meuble (tiroir dépliable) : "+ Ajouter un SAV" pour chaque défaut : référence de la pièce, désignation de la pièce, un ou plusieurs types d'observation (cases à cocher), commentaire, et 1 à 4 photos — tous obligatoires.
-5. Menu (⋮) ou bouton "Exporter le rapport" : popup avec PDF et JSON cochés par défaut, puis "Exporter". La fenêtre de partage native de l'appareil s'ouvre directement avec le ou les fichiers : on y choisit une appli (mail, messagerie, Drive...) ou "Enregistrer dans Fichiers/Téléchargements" — en un seul geste, sans repasser par les dossiers. Si le partage n'est pas disponible sur l'appareil ou le navigateur (certains PC sans appli de partage configurée), le ou les fichiers sont téléchargés directement dans le dossier de téléchargements.
+5. Menu (⋮) ou bouton "Exporter le rapport" : popup avec PDF et JSON cochés par défaut, puis "Exporter". Chaque fichier est partagé individuellement si l'appareil le permet (fenêtre de partage native pour choisir une appli, ou "Enregistrer dans Fichiers/Téléchargements"). Android/Chrome n'autorisent le partage direct que pour une liste fermée de types "sûrs" (image, audio, vidéo, PDF, texte) — le `.json` n'en fait pas partie. Pour contourner ça sans rien changer au contenu, le fichier exploitable est proposé au partage sous une étiquette `.txt` (texte brut), reconnue par cette liste ; s'il est malgré tout refusé, il est automatiquement téléchargé en `.json` normal, jamais perdu. L'import accepte les deux extensions indifféremment. Si le partage n'est pas disponible sur l'appareil (certains PC), tout est téléchargé directement.
 
 ### Circuit de traitement d'un SAV
 

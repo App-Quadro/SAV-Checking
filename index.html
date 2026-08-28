@@ -402,7 +402,7 @@
   </div>
 </div>
 
-<input type="file" id="fileImport" accept=".json,application/json">
+<input type="file" id="fileImport" accept=".json,application/json,.txt,text/plain">
 
 <!-- Modal export -->
 <div class="modal-overlay" id="exportModalOverlay">
@@ -515,7 +515,7 @@
 
 <script>
 /* ---------- VERSION ---------- */
-const APP_VERSION = "2.03.00"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
+const APP_VERSION = "2.03.03"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
 const SCHEMA_VERSION = 3; // version de structure du fichier .json échangé entre utilisateurs
 const MAX_SAV_PHOTOS = 4;
 
@@ -1237,6 +1237,51 @@ function markExported(){
   saveDraft();
 }
 
+/* Partage chaque élément individuellement quand c'est possible ; tout élément
+   qui ne peut pas être partagé est systématiquement téléchargé à la place —
+   jamais silencieusement perdu. Essaie d'abord un partage groupé (un seul
+   geste) quand l'appareil l'accepte pour la totalité.
+   Chaque item : { shareFile: File utilisé pour la tentative de partage,
+                    downloadBlob, downloadName: nom/contenu réels pour le
+                    téléchargement, qui peuvent différer du shareFile (voir
+                    plus bas pour le .json déguisé en .txt). */
+async function exportFiles(items, title, text){
+  const sharedNames = [];
+  const downloadedNames = [];
+  const shareFiles = items.map(i=>i.shareFile);
+
+  const canShareAll = navigator.share && navigator.canShare &&
+    shareFiles.length > 1 && navigator.canShare({files:shareFiles});
+  if(canShareAll){
+    try{
+      await navigator.share({files:shareFiles, title, text});
+      return { shared: items.map(i=>i.downloadName), downloaded: [] };
+    }catch(err){
+      // refusé ou annulé pour le groupe : on retente élément par élément ci-dessous
+      // plutôt que d'abandonner, pour ne perdre aucun fichier.
+    }
+  }
+
+  for(const item of items){
+    let ok = false;
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[item.shareFile]})){
+      try{
+        await navigator.share({files:[item.shareFile], title, text});
+        ok = true;
+      }catch(err){
+        // annulé ou refusé pour ce fichier précis : il sera téléchargé ci-dessous.
+      }
+    }
+    if(ok){
+      sharedNames.push(item.downloadName);
+    } else {
+      downloadBlob(item.downloadBlob, item.downloadName);
+      downloadedNames.push(item.downloadName);
+    }
+  }
+  return { shared: sharedNames, downloaded: downloadedNames };
+}
+
 document.getElementById("exConfirm").addEventListener("click", async ()=>{
   const wantPdf = document.getElementById("cbExportPdf").checked;
   const wantJson = document.getElementById("cbExportJson").checked;
@@ -1245,48 +1290,54 @@ document.getElementById("exConfirm").addEventListener("click", async ()=>{
   const btn = document.getElementById("exConfirm");
   btn.disabled = true; btn.textContent = "Génération...";
   try{
-    const filesToShare = [];
-    let pdfResult = null;
+    const items = [];
 
     if(wantPdf){
-      pdfResult = await generatePdf();
-      filesToShare.push(new File([pdfResult.blob], pdfResult.name, {type:"application/pdf"}));
+      const pdfResult = await generatePdf();
+      items.push({
+        shareFile: new File([pdfResult.blob], pdfResult.name, {type:"application/pdf"}),
+        downloadBlob: pdfResult.blob,
+        downloadName: pdfResult.name
+      });
     }
-    let jsonBlob = null, jsonName = null;
     if(wantJson){
       markExported();
-      jsonBlob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
-      jsonName = fileNameBase()+".json";
-      filesToShare.push(new File([jsonBlob], jsonName, {type:"application/json"}));
+      const jsonBlob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+      const jsonName = fileNameBase()+".json";
+      items.push({
+        // Le partage natif (Web Share API) n'autorise qu'une liste fermée de
+        // types "sûrs" (image, audio, vidéo, pdf, texte) pour éviter qu'un
+        // site partage un fichier hostile. Le .json n'en fait pas partie sur
+        // Android, ce qui bloquait tout partage de ce fichier. Le contenu est
+        // du texte structuré : on le fait donc transiter en .txt uniquement
+        // pour cette tentative de partage — le contenu ne change pas, et le
+        // fichier réellement enregistré (en cas de repli téléchargement, ou
+        // pour l'import ultérieur) reste un .json normal.
+        shareFile: new File([jsonBlob], fileNameBase()+".txt", {type:"text/plain"}),
+        downloadBlob: jsonBlob,
+        downloadName: jsonName
+      });
     }
 
     document.getElementById("exportModalOverlay").classList.remove("show");
     render();
 
-    // Un seul geste : la fenêtre de partage native du téléphone/PC s'ouvre
-    // directement avec le ou les fichiers. L'utilisateur y choisit une appli
-    // (mail, messagerie...) OU "Enregistrer dans Fichiers" / "Téléchargements"
-    // depuis cette même fenêtre — aucune manipulation de dossier séparée.
-    let shared = false;
-    if(navigator.canShare && navigator.canShare({files:filesToShare})){
-      try{
-        await navigator.share({
-          files: filesToShare,
-          title: "Rapport SAV "+(state.magasin||""),
-          text: "Rapport SAV "+(state.magasin||"")+" du "+(state.date||"")
-        });
-        shared = true;
-      }catch(shareErr){
-        if(shareErr.name === "AbortError"){
-          // l'utilisateur a fermé la fenêtre de partage volontairement : rien à faire.
-          shared = true;
-        }
-        // toute autre erreur : on bascule sur le téléchargement direct ci-dessous.
+    const { shared, downloaded } = await exportFiles(
+      items,
+      "Rapport SAV "+(state.magasin||""),
+      "Rapport SAV "+(state.magasin||"")+" du "+(state.date||"")
+    );
+
+    // Message transparent uniquement si le partage existe sur cet appareil
+    // mais n'a pas pu couvrir tous les fichiers — sinon (partage absent,
+    // ex. certains PC) le téléchargement silencieux reste normal.
+    if(navigator.share && downloaded.length > 0){
+      const names = downloaded.join(", ");
+      if(shared.length > 0){
+        alert(`Partagé avec succès. "${names}" n'a pas pu être proposé au partage sur cet appareil : enregistré dans le dossier de téléchargements à la place.`);
+      } else {
+        alert(`Le partage direct n'a pas été accepté par cet appareil pour ce(s) fichier(s). Enregistré(s) dans le dossier de téléchargements — vous pouvez les partager depuis là.`);
       }
-    }
-    if(!shared){
-      if(pdfResult) downloadBlob(pdfResult.blob, pdfResult.name);
-      if(jsonBlob) downloadBlob(jsonBlob, jsonName);
     }
   } catch(e){
     alert("Erreur lors de l'export : "+e.message);
