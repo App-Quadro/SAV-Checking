@@ -414,7 +414,7 @@
     <label style="display:flex;align-items:center;gap:10px;font-size:1rem;text-transform:none;font-weight:400;margin-bottom:12px;">
       <input type="checkbox" id="cbExportJson" checked style="width:auto;margin:0;"> Fichier exploitable (.json, pour réimport)
     </label>
-    <div class="hint" id="exportHint">La fenêtre de partage de votre appareil s'ouvre : choisissez une appli (mail, messagerie...) ou "Enregistrer dans Fichiers/Téléchargements". Si le partage n'est pas disponible sur cet appareil, le(s) fichier(s) sont téléchargés directement.</div>
+    <div class="hint" id="exportHint">Le(s) fichier(s) sont systématiquement enregistrés dans vos téléchargements. La fenêtre de partage de votre appareil s'ouvre aussi si disponible, pour envoyer directement à une appli (mail, messagerie...) en plus de l'enregistrement.</div>
     <div class="modal-actions">
       <button class="btn-secondary" id="exCancel" style="flex:1">Annuler</button>
       <button class="btn-primary" id="exConfirm" style="flex:1">Exporter</button>
@@ -515,7 +515,7 @@
 
 <script>
 /* ---------- VERSION ---------- */
-const APP_VERSION = "2.03.06"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
+const APP_VERSION = "2.03.07"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
 const SCHEMA_VERSION = 3; // version de structure du fichier .json échangé entre utilisateurs
 const MAX_SAV_PHOTOS = 4;
 
@@ -1237,49 +1237,51 @@ function markExported(){
   saveDraft();
 }
 
-/* Partage chaque élément individuellement quand c'est possible ; tout élément
-   qui ne peut pas être partagé est systématiquement téléchargé à la place —
-   jamais silencieusement perdu. Essaie d'abord un partage groupé (un seul
-   geste) quand l'appareil l'accepte pour la totalité.
+/* Le partage est un geste EN PLUS, jamais un remplacement de l'enregistrement :
+   chaque fichier est systématiquement sauvegardé localement, que le partage
+   natif fonctionne ou non (sur certains PC, la fenêtre de partage s'ouvre et
+   se referme sans que le système ne redescende de blob vers le disque — on
+   ne peut pas s'y fier comme seule voie de sauvegarde). Le partage groupé est
+   tenté en un seul geste quand l'appareil l'accepte pour la totalité, sinon
+   fichier par fichier.
    Chaque item : { shareFile: File utilisé pour la tentative de partage,
-                    downloadBlob, downloadName: nom/contenu réels pour le
-                    téléchargement, qui peuvent différer du shareFile (voir
+                    downloadBlob, downloadName: nom/contenu réels pour
+                    l'enregistrement, qui peuvent différer du shareFile (voir
                     plus bas pour le .json déguisé en .txt). */
 async function exportFiles(items, title, text){
   const sharedNames = [];
-  const downloadedNames = [];
   const shareFiles = items.map(i=>i.shareFile);
 
   const canShareAll = navigator.share && navigator.canShare &&
     shareFiles.length > 1 && navigator.canShare({files:shareFiles});
+  let groupShared = false;
   if(canShareAll){
     try{
       await navigator.share({files:shareFiles, title, text});
-      return { shared: items.map(i=>i.downloadName), downloaded: [] };
+      groupShared = true;
+      sharedNames.push(...items.map(i=>i.downloadName));
     }catch(err){
-      // refusé ou annulé pour le groupe : on retente élément par élément ci-dessous
-      // plutôt que d'abandonner, pour ne perdre aucun fichier.
+      // refusé ou annulé pour le groupe : on retente élément par élément ci-dessous.
     }
   }
 
-  for(const item of items){
-    let ok = false;
-    if(navigator.share && navigator.canShare && navigator.canShare({files:[item.shareFile]})){
-      try{
-        await navigator.share({files:[item.shareFile], title, text});
-        ok = true;
-      }catch(err){
-        // annulé ou refusé pour ce fichier précis : il sera téléchargé ci-dessous.
+  if(!groupShared){
+    for(const item of items){
+      if(navigator.share && navigator.canShare && navigator.canShare({files:[item.shareFile]})){
+        try{
+          await navigator.share({files:[item.shareFile], title, text});
+          sharedNames.push(item.downloadName);
+        }catch(err){
+          // annulé ou refusé pour ce fichier précis : il sera quand même enregistré ci-dessous.
+        }
       }
     }
-    if(ok){
-      sharedNames.push(item.downloadName);
-    } else {
-      downloadBlob(item.downloadBlob, item.downloadName);
-      downloadedNames.push(item.downloadName);
-    }
   }
-  return { shared: sharedNames, downloaded: downloadedNames };
+
+  // Enregistrement systématique de tous les fichiers, partagés ou non.
+  items.forEach(item => downloadBlob(item.downloadBlob, item.downloadName));
+
+  return { shared: sharedNames };
 }
 
 document.getElementById("exConfirm").addEventListener("click", async ()=>{
@@ -1322,23 +1324,14 @@ document.getElementById("exConfirm").addEventListener("click", async ()=>{
     document.getElementById("exportModalOverlay").classList.remove("show");
     render();
 
-    const { shared, downloaded } = await exportFiles(
+    await exportFiles(
       items,
       "Rapport SAV "+(state.magasin||""),
       "Rapport SAV "+(state.magasin||"")+" du "+(state.date||"")
     );
-
-    // Message transparent uniquement si le partage existe sur cet appareil
-    // mais n'a pas pu couvrir tous les fichiers — sinon (partage absent,
-    // ex. certains PC) le téléchargement silencieux reste normal.
-    if(navigator.share && downloaded.length > 0){
-      const names = downloaded.join(", ");
-      if(shared.length > 0){
-        alert(`Partagé avec succès. "${names}" n'a pas pu être proposé au partage sur cet appareil : enregistré dans le dossier de téléchargements à la place.`);
-      } else {
-        alert(`Le partage direct n'a pas été accepté par cet appareil pour ce(s) fichier(s). Enregistré(s) dans le dossier de téléchargements — vous pouvez les partager depuis là.`);
-      }
-    }
+    // Chaque fichier est désormais systématiquement enregistré (voir
+    // exportFiles) : pas de message nécessaire, le partage est un bonus
+    // silencieux quand il fonctionne en plus.
   } catch(e){
     alert("Erreur lors de l'export : "+e.message);
   } finally {
