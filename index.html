@@ -515,7 +515,7 @@
 
 <script>
 /* ---------- VERSION ---------- */
-const APP_VERSION = "2.03.03"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
+const APP_VERSION = "2.03.04"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
 const SCHEMA_VERSION = 3; // version de structure du fichier .json échangé entre utilisateurs
 const MAX_SAV_PHOTOS = 4;
 
@@ -1541,7 +1541,6 @@ async function generatePdf(){
     for(const s of m.savs){
       doc.addPage();
       const isResolu = s.statut === "resolu";
-      if(isResolu) drawWatermark();
       drawCornerLogo();
 
       let sy = MARGIN;
@@ -1603,8 +1602,8 @@ async function generatePdf(){
       if(fil.length){
         const ensurePage = (needed)=>{
           if(sy + needed > PH - MARGIN - 6){
+            if(isResolu) drawWatermark(); // tamponner la page qu'on quitte, une fois son contenu déjà dessiné
             doc.addPage();
-            if(isResolu) drawWatermark();
             drawCornerLogo();
             sy = MARGIN;
           }
@@ -1636,6 +1635,7 @@ async function generatePdf(){
         });
       }
 
+      if(isResolu) drawWatermark(); // tamponné en dernier, au-dessus des photos et du texte déjà posés
       footerInfo();
     }
   }

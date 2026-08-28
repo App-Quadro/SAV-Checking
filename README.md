@@ -1,4 +1,4 @@
-# Suivi SAV Aménagement — V2.03.03
+# Suivi SAV Aménagement — V2.03.04
 
 Application locale, fichier unique, sans serveur. Toutes les données (texte + photos) restent dans le navigateur jusqu'à export. Le fichier `.json` exporté sert aussi de support d'échange entre l'animateur, Antoine (responsable showroom) et le bureau d'études.
 
