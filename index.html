@@ -402,7 +402,7 @@
   </div>
 </div>
 
-<input type="file" id="fileImport" accept="application/json">
+<input type="file" id="fileImport" accept=".json,application/json">
 
 <!-- Modal export -->
 <div class="modal-overlay" id="exportModalOverlay">
@@ -527,7 +527,7 @@
 
 <script>
 /* ---------- VERSION ---------- */
-const APP_VERSION = "2.02.01"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
+const APP_VERSION = "2.02.02"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
 const SCHEMA_VERSION = 3; // version de structure du fichier .json échangé entre utilisateurs
 const MAX_SAV_PHOTOS = 4;
 
@@ -1347,8 +1347,22 @@ document.getElementById("fileImport").addEventListener("change", e=>{
   const reader = new FileReader();
   reader.onload = ev=>{
     try{
-      const data = JSON.parse(ev.target.result);
-      if(!data.meubles) throw new Error("format invalide");
+      // Certains partages/téléchargements Android ajoutent un BOM UTF-8 en tête
+      // de fichier, ce qui fait échouer JSON.parse sans que le fichier soit
+      // réellement invalide : on le retire avant de parser.
+      const raw = String(ev.target.result || "").replace(/^\uFEFF/, "").trim();
+      if(!raw){ alert("Le fichier sélectionné est vide ou n'a pas pu être lu correctement."); return; }
+      let data;
+      try{
+        data = JSON.parse(raw);
+      }catch(parseErr){
+        alert("Ce fichier n'est pas un JSON valide (contenu illisible). Vérifiez que le bon fichier a bien été sélectionné.");
+        return;
+      }
+      if(!data || !data.meubles){
+        alert("Ce fichier JSON ne correspond pas à un rapport SAV (structure attendue absente).");
+        return;
+      }
       if(data.schemaVersion && data.schemaVersion > SCHEMA_VERSION){
         alert("Attention : ce fichier a été créé avec une version plus récente de l'application. Certaines informations peuvent ne pas s'afficher correctement. Pensez à mettre à jour l'application (bandeau en haut de l'écran).");
       }
@@ -1359,6 +1373,9 @@ document.getElementById("fileImport").addEventListener("change", e=>{
     }catch(err){
       alert("Fichier invalide ou illisible.");
     }
+  };
+  reader.onerror = ()=>{
+    alert("Impossible de lire ce fichier sur cet appareil. Réessayez, ou renommez le fichier en .json si son extension a été modifiée.");
   };
   reader.readAsText(f);
   e.target.value = "";
