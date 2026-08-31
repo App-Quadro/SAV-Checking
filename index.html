@@ -632,7 +632,7 @@
 
 <script>
 /* ---------- VERSION ---------- */
-const APP_VERSION = "3.00.07"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
+const APP_VERSION = "3.00.08"; // format V.MM.mm : majeur.mineur — à incrémenter à chaque évolution
 const SCHEMA_VERSION = 4; // version de structure du fichier .json échangé entre utilisateurs
 const MAX_SAV_PHOTOS = 4;
 
@@ -1586,39 +1586,56 @@ function markExported(){
                     downloadBlob, downloadName: nom/contenu réels pour
                     l'enregistrement, qui peuvent différer du shareFile (voir
                     plus bas pour le .json déguisé en .txt). */
-// Plusieurs fichiers sont TOUJOURS regroupés en une seule archive .zip avant
-// partage ET avant enregistrement — un seul fichier, un seul geste dans les
-// deux cas. Partager (ou enregistrer) fichier par fichier dans une boucle
-// pose le même problème dans les deux cas : l'autorisation du navigateur
-// (partage comme sauvegarde) n'est valable que pour le premier appel d'un
-// même geste utilisateur, la boucle échoue donc silencieusement à partir du
-// deuxième fichier.
+// Partage et enregistrement empruntent volontairement deux chemins
+// différents : le partage natif (Web Share API) n'autorise qu'une liste
+// fermée de types "sûrs" (image/pdf/texte...), une archive .zip n'en fait
+// PAS partie (même restriction historique que le .json seul, voir plus
+// haut) — la partager échouerait silencieusement (canShare renvoie false,
+// aucune fenêtre ne s'ouvre). Le partage porte donc sur les fichiers
+// d'origine, regroupés en un seul geste quand l'appareil l'accepte pour
+// toute la liste, sinon fichier par fichier. L'enregistrement, lui, regroupe
+// systématiquement plusieurs fichiers en un seul .zip : showSaveFilePicker
+// ne peut être invoqué qu'une fois par geste utilisateur, un fichier par
+// fichier dans une boucle y échoue silencieusement à partir du deuxième.
 async function exportFiles(items, title, text){
   if(items.length === 0) return { shared: [] };
 
-  let target;
-  if(items.length > 1){
-    const zip = new JSZip();
-    items.forEach(item => zip.file(item.downloadName, item.downloadBlob));
-    const zipBlob = await zip.generateAsync({type:"blob"});
-    const zipName = fileNameBase()+".zip";
-    target = { shareFile: new File([zipBlob], zipName, {type:"application/zip"}), downloadBlob: zipBlob, downloadName: zipName };
-  } else {
-    target = items[0];
-  }
-
   const shared = [];
-  if(navigator.share && navigator.canShare && navigator.canShare({files:[target.shareFile]})){
+  const shareFiles = items.map(i=>i.shareFile);
+  const canShareAll = navigator.share && navigator.canShare &&
+    shareFiles.length > 1 && navigator.canShare({files:shareFiles});
+  let groupShared = false;
+  if(canShareAll){
     try{
-      await navigator.share({files:[target.shareFile], title, text});
-      shared.push(target.downloadName);
+      await navigator.share({files:shareFiles, title, text});
+      groupShared = true;
+      shared.push(...items.map(i=>i.downloadName));
     }catch(err){
-      // annulé ou refusé : le fichier sera quand même enregistré ci-dessous.
+      // refusé ou annulé pour le groupe : on retente élément par élément ci-dessous.
+    }
+  }
+  if(!groupShared){
+    for(const item of items){
+      if(navigator.share && navigator.canShare && navigator.canShare({files:[item.shareFile]})){
+        try{
+          await navigator.share({files:[item.shareFile], title, text});
+          shared.push(item.downloadName);
+        }catch(err){
+          // annulé ou refusé pour ce fichier précis : il sera quand même enregistré ci-dessous.
+        }
+      }
     }
   }
 
   // Enregistrement systématique, partagé ou non.
-  await saveFileToDisk(target.downloadBlob, target.downloadName);
+  if(items.length > 1){
+    const zip = new JSZip();
+    items.forEach(item => zip.file(item.downloadName, item.downloadBlob));
+    const zipBlob = await zip.generateAsync({type:"blob"});
+    await saveFileToDisk(zipBlob, fileNameBase()+".zip");
+  } else {
+    await saveFileToDisk(items[0].downloadBlob, items[0].downloadName);
+  }
 
   return { shared };
 }
